@@ -1,0 +1,6 @@
+{
+  "name": "Comeback Tracker",
+  "description": "Minimalist academic comeback dashboard tracking targets, SAT/HSC countdowns, 5 core missions, timetable, and auto-tracked subject syllabus progress.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
