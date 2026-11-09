@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Home,
   LayoutGrid, 
@@ -15,10 +15,13 @@ import {
   Shield,
   User,
   Sliders,
-  ChevronsLeft
+  ChevronsLeft,
+  Compass
 } from 'lucide-react';
 import { useTracker } from '../context/TrackerContext';
+import { useUsaApp } from '../context/UsaAppContext';
 import { NavTab } from '../types/tracker';
+import { UsaSubSection } from '../types/usaApp';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -33,6 +36,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     toggleSidebar,
     setIsProfileDrawerOpen 
   } = useTracker();
+
+  const { activeSubSection, setActiveSubSection } = useUsaApp();
+  const [usaMenuExpanded, setUsaMenuExpanded] = useState(true);
+
+  const usaSubSections: { id: UsaSubSection; label: string }[] = [
+    { id: 'dashboard', label: '1. Dashboard' },
+    { id: 'colleges', label: '2. College List' },
+    { id: 'essays', label: '3. Essays Studio' },
+    { id: 'academics', label: '4. Academics' },
+    { id: 'lors', label: '5. LORs' },
+    { id: 'sop', label: '6. SOP' },
+    { id: 'ecas', label: '7. ECAs & Achievements' },
+    { id: 'projects', label: '8. Passion Projects' },
+    { id: 'strategy', label: '9. Strategy & Rounds' },
+    { id: 'vault', label: '10. Research Vault' },
+  ];
 
   const navItems: { id: NavTab; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Overview', icon: Home },
@@ -91,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
           </div>
 
           {/* Navigation Section */}
-          <div className="px-3 py-4">
+          <div className="px-3 py-4 overflow-y-auto max-h-[calc(100vh-220px)] space-y-1">
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -117,6 +136,64 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
                   </button>
                 );
               })}
+
+              {/* USA APPLICATION Primary Navigation Section */}
+              <div className="pt-2">
+                <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400">
+                  Admissions Workspace
+                </div>
+                
+                <button
+                  onClick={() => {
+                    handleSelectTab('usa-app');
+                    setUsaMenuExpanded(prev => activeTab === 'usa-app' ? !prev : true);
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group cursor-pointer
+                    ${activeTab === 'usa-app'
+                      ? 'bg-stone-900 text-white shadow-xs' 
+                      : 'text-stone-700 hover:text-stone-900 hover:bg-[#F2ECE3]'}
+                  `}
+                >
+                  <Compass 
+                    className={`w-4 h-4 transition-colors ${activeTab === 'usa-app' ? 'text-white' : 'text-stone-600'}`} 
+                    strokeWidth={2}
+                  />
+                  <span className="flex-1 text-left tracking-tight">USA APPLICATION</span>
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-extrabold ${
+                    activeTab === 'usa-app' ? 'bg-stone-800 text-amber-200' : 'bg-stone-200 text-stone-700'
+                  }`}>
+                    2028
+                  </span>
+                </button>
+
+                {/* Subsections accordion */}
+                {(activeTab === 'usa-app' || usaMenuExpanded) && (
+                  <div className="mt-1 ml-3 pl-3 border-l-2 border-stone-200 space-y-0.5 py-1 animate-in fade-in duration-150">
+                    {usaSubSections.map(sub => {
+                      const isSubActive = activeTab === 'usa-app' && activeSubSection === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            handleSelectTab('usa-app');
+                            setActiveSubSection(sub.id);
+                          }}
+                          className={`
+                            w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-colors text-left cursor-pointer
+                            ${isSubActive 
+                              ? 'bg-[#EAE2D7] text-stone-900 font-bold' 
+                              : 'text-stone-600 hover:text-stone-900 hover:bg-[#F2ECE3]'}
+                          `}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSubActive ? 'bg-stone-900' : 'bg-stone-300'}`} />
+                          <span className="truncate">{sub.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
         </div>

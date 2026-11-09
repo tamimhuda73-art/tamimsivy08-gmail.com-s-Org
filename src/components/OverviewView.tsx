@@ -501,19 +501,29 @@ export const OverviewView: React.FC = () => {
                 Progress: manual (10%) Countdown: dynamic
               </p>
 
-              <button
-                onClick={() => openDatePopover(
-                  usaMilestone.id, 
-                  'milestone', 
-                  'USA University Application Preparation', 
-                  usaMilestone.targetDate || '2027-11-01', 
-                  'PLANNED'
-                )}
-                className="mt-2 px-3 py-1.5 bg-[#F2EDE5] hover:bg-[#EAE2D7] text-xs font-mono font-bold text-gray-800 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Edit3 className="w-3 h-3 text-gray-600" />
-                <span>Edit date</span>
-              </button>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => openDatePopover(
+                    usaMilestone.id, 
+                    'milestone', 
+                    'USA University Application Preparation', 
+                    usaMilestone.targetDate || '2027-11-01', 
+                    'PLANNED'
+                  )}
+                  className="px-3 py-1.5 bg-[#F2EDE5] hover:bg-[#EAE2D7] text-xs font-mono font-bold text-gray-800 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-3 h-3 text-gray-600" />
+                  <span>Edit date</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('usa-app')}
+                  className="px-3.5 py-1.5 bg-[#3B302A] hover:bg-[#292724] text-xs font-mono font-bold text-[#EFE7DC] rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ml-auto"
+                >
+                  <span>Open USA Workspace</span>
+                  <span>→</span>
+                </button>
+              </div>
             </div>
           </div>
 

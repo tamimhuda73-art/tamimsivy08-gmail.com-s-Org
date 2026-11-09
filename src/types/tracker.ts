@@ -8,7 +8,8 @@ export type NavTab =
   | 'subjects' 
   | 'habits' 
   | 'analytics' 
-  | 'settings';
+  | 'settings'
+  | 'usa-app';
 
 export interface RoutineCellContent {
   subject: string;

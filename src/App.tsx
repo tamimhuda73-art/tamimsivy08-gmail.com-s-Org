@@ -17,6 +17,8 @@ import { SubjectModal } from './components/modals/SubjectModal';
 import { ProfileDrawer } from './components/modals/ProfileDrawer';
 import { DateManagementModal } from './components/modals/DateManagementModal';
 import { RightSidebar } from './components/RightSidebar';
+import { UsaAppProvider } from './context/UsaAppContext';
+import { UsaAppWorkspace } from './components/usa/UsaAppWorkspace';
 
 const MainLayout: React.FC = () => {
   const { activeTab } = useTracker();
@@ -47,6 +49,7 @@ const MainLayout: React.FC = () => {
           {activeTab === 'habits' && <HabitsView />}
           {activeTab === 'analytics' && <AnalyticsView />}
           {activeTab === 'settings' && <SettingsView />}
+          {activeTab === 'usa-app' && <UsaAppWorkspace />}
         </main>
       </div>
 
@@ -65,7 +68,9 @@ const MainLayout: React.FC = () => {
 export default function App() {
   return (
     <TrackerProvider>
-      <MainLayout />
+      <UsaAppProvider>
+        <MainLayout />
+      </UsaAppProvider>
     </TrackerProvider>
   );
 }

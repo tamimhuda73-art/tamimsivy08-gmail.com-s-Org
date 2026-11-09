@@ -1,0 +1,1114 @@
+# COMEBACK STUDY TRACKER — USA UNIVERSITY APPLICATION KNOWLEDGE BASE
+## MASTER IMPLEMENTATION PROMPT | FALL 2028
+
+You are a principal product designer, senior full-stack engineer, database architect, and productivity software specialist.
+
+Your task is to integrate a comprehensive **USA UNIVERSITY APPLICATION WORKSPACE** into my existing application, COMEBACK STUDY TRACKER.
+
+This is an extension of my existing application, NOT a new application.
+
+My existing application already manages:
+- Daily study tracking
+- HSC preparation
+- SAT preparation
+- Study routines
+- Calendar
+- Missions
+- Monthly targets
+- Daily habits
+- Focus timer
+- Subject progress
+- Analytics
+
+Preserve every existing module, its functionality, database, records, navigation, and visual identity.
+
+The new USA Application section must operate alongside these modules without interfering with them.
+
+My application goal is **Fall 2028 university admission in the USA as an international applicant from Bangladesh.**
+
+This workspace should become my personal admissions information bank, university research database, essay-writing studio, academic archive, and application preparation workspace.
+
+I will personally enter information, research findings, ideas, drafts, scores, and records over time.
+
+Do not turn this into a generic application checklist.
+
+---
+
+# PART 1 — OVERALL APPLICATION ARCHITECTURE
+
+Add one primary navigation item:
+
+**USA APPLICATION**
+
+It should expand into these subsections:
+
+1. Dashboard
+2. College List
+3. Essays
+4. Academics
+5. LORs
+6. SOP
+7. ECAs & Achievements
+8. Passion Projects
+9. Application Strategy
+10. Research Vault
+
+Each subsection must open its own complete workspace.
+
+The dashboard should combine previews of all these sections.
+
+Every section must have its own dedicated interface, records, editing functionality, and persistent storage.
+
+The overall structure:
+
+USA APPLICATION
+├── Dashboard
+├── College List
+│   ├── Reach
+│   ├── Target
+│   ├── Safety
+│   └── Individual University Profiles
+├── Essays
+│   ├── Main Essay
+│   ├── Supplemental Essays
+│   ├── Story Bank
+│   └── Draft Archive
+├── Academics
+│   ├── SAT
+│   ├── HSC
+│   ├── IELTS / TOEFL
+│   └── Bangladesh Admission Tests
+├── LORs
+├── SOP
+├── ECAs & Achievements
+├── Passion Projects
+├── Application Strategy
+└── Research Vault
+
+# PART 2 — DESIGN SYSTEM
+
+Maintain the existing COMEBACK visual identity.
+
+Official colors:
+
+- Dark Espresso: #3B302A
+- Deep Brown: #59483D
+- Warm Beige: #D8C5AE
+- Light Beige: #EFE7DC
+- Off-white: #F8F6F2
+- Muted Taupe: #A99A8C
+- Charcoal: #292724
+
+Design direction:
+
+- Premium academic workspace
+- Minimalist editorial interface
+- Elegant serif headings
+- Clean sans-serif body typography
+- Warm paper-like notebook surfaces
+- Subtle borders and shadows
+- Sophisticated navigation
+- Generous whitespace
+- Consistent icons
+- Refined interactive elements
+
+The interface should combine the usability of Notion, the organization of Linear, and the feeling of a premium academic notebook.
+
+Do not use random colors, excessive gradients, neon effects, unnecessary animations, or generic admin dashboard templates.
+
+Use the same global sidebar, top navigation, profile controls, and responsive design as the existing COMEBACK application.
+
+# PART 3 — USA APPLICATION DASHBOARD
+
+The dashboard must give me an overview of everything happening inside my application workspace.
+
+It must not become another checklist page.
+
+Its purpose is to provide a central entrance to every important workspace.
+
+## Header
+
+Heading:
+"Your American Dream, Planned."
+
+Subtitle:
+"Research. Prepare. Write. Apply."
+
+Show the selected application cycle:
+FALL 2028
+
+Include:
+- Global search
+- Notifications
+- Quick add
+- Profile menu
+
+## Dashboard sections
+
+Create a spacious dashboard grid containing:
+
+**1. College Lists**
+
+Display three tabs:
+- Reach
+- Target
+- Safety
+
+Show the number of universities saved in each category.
+
+Clicking a category opens its respective university collection.
+
+**2. Essays**
+
+Display:
+- Main Essay
+- Supplemental Essays
+- Number of drafts
+- Recently edited essays
+- Last edited date
+
+Provide direct access to the writing studio.
+
+**3. Academics**
+
+Display previews of:
+- SAT
+- HSC
+- IELTS / TOEFL
+- Bangladesh Admission Tests
+
+Only display actual saved records.
+
+**4. LORs**
+
+Display:
+- Number of recommendation notebooks
+- Last edited notebook
+- Draft status
+
+**5. SOP**
+
+Display the number of saved drafts and a direct notebook shortcut.
+
+**6. ECAs & Achievements**
+
+Display saved activities, achievements, and recently updated records.
+
+**7. Passion Projects**
+
+Display:
+- Total project ideas
+- Active projects
+- Recently updated ideas
+
+**8. Application Strategy**
+
+Show shortcuts to:
+- ED
+- EA
+- REA
+- RD
+- Application planning
+- University-specific decisions
+
+**9. Research Vault**
+
+Show recently saved research, links, and documents.
+
+All dashboard statistics must be calculated from actual records.
+
+Never generate fake progress or sample personal achievements.
+
+# PART 4 — COLLEGE LIST
+
+This is one of the most important parts of the entire system.
+
+I want a worldwide university discovery and personal university collection system.
+
+## A. University discovery
+
+Create a searchable university directory that supports universities from all countries.
+
+Search and filter by:
+- University name
+- Country
+- State
+- City
+- Degree level
+- Undergraduate programs
+- Intended major
+- Public/private
+- Tuition range
+- Financial aid availability
+- International student aid policies
+
+Allow me to add a university manually if it is missing.
+
+Do not pretend to contain a complete or verified worldwide university database if one is not connected.
+
+## B. Three personal university categories
+
+Create three distinct collections:
+
+**REACH**
+
+Universities I consider highly competitive for my profile.
+
+**TARGET**
+
+Universities whose admission expectations I consider more closely aligned with my profile.
+
+**SAFETY**
+
+Universities I consider comparatively more attainable.
+
+Important: These classifications are my personal planning decisions, not guaranteed admission predictions.
+
+Allow me to move universities between categories whenever I want.
+
+## C. Individual university profiles
+
+When I click a university, open a complete dedicated research workspace.
+
+Every university must have its own notebook.
+
+The notebook must support unlimited personal research entries.
+
+Use these tabs:
+
+### 1. Overview
+
+Fields:
+- University name
+- Official website
+- Country
+- State
+- City
+- University type
+- Campus information
+- Undergraduate programs
+- Intended major
+- Personal interest notes
+- Why I selected this university
+
+### 2. Admission Requirements
+
+Allow me to record:
+
+- SAT requirements or test policy
+- ACT requirements or test policy
+- GPA expectations
+- Academic curriculum requirements
+- English proficiency requirements
+- IELTS requirements
+- TOEFL requirements
+- Duolingo requirements
+- Application platform
+- Common App availability
+- Supplemental requirements
+- Recommendation requirements
+- Transcript requirements
+- Additional documents
+- International student requirements
+
+Distinguish clearly between required, optional, recommended, and not accepted.
+
+### 3. Admission Statistics
+
+Allow me to research and record:
+
+- Acceptance rate
+- Overall applicant statistics
+- International applicant statistics
+- SAT score ranges
+- ACT score ranges
+- Academic profile information
+- International enrollment information
+- Undergraduate enrollment
+
+Every statistic must support a source URL, source title, and verification date.
+
+Do not automatically insert unverified statistics.
+
+### 4. Financial Aid & Scholarships
+
+Include fields for:
+
+- International student financial aid
+- Need-based financial aid
+- Merit scholarships
+- Full-ride opportunities
+- Tuition fees
+- Housing expenses
+- Estimated attendance costs
+- Application fee
+- Fee waiver availability
+- CSS Profile requirement
+- Financial documentation
+- Need-aware / need-blind policy for international applicants
+- Scholarship deadlines
+- Personal financial aid notes
+
+Never assume that a university provides international students the same financial aid as domestic students.
+
+### 5. University Culture & Preferences
+
+This section is especially important.
+
+Create an open research notebook where I can write:
+
+- What type of students the university appears to value
+- Academic culture
+- Research opportunities
+- Entrepreneurship culture
+- Leadership opportunities
+- Community involvement
+- Intellectual curiosity
+- Innovation
+- Campus environment
+- University-specific characteristics
+- My personal observations
+
+Allow unlimited notes and multiple research entries.
+
+Do not claim that a university "loves" a particular personality or activity without supporting evidence.
+
+### 6. Application Strategy
+
+Record:
+
+- ED availability
+- EA availability
+- REA availability
+- RD availability
+- International applicant restrictions
+- Application deadlines
+- Financial aid deadlines
+- My intended application round
+- My personal reasons
+- My decision notes
+
+### 7. Personal Notes
+
+Provide an unrestricted rich-text notebook.
+
+I must be able to write anything I discover during my research.
+
+### 8. Research Sources
+
+Every research entry should support:
+
+- Source title
+- URL
+- Date researched
+- Last verified date
+- Notes
+- Source type
+
+Allow multiple sources per university.
+
+## D. University management
+
+Support:
+- Add university
+- Edit university
+- Delete university
+- Archive university
+- Change category
+- Favorite university
+- Compare universities
+- Duplicate-safe records
+- Export individual university research
+
+A university profile must retain all its research when moved between Reach, Target, and Safety.
+
+# PART 5 — ESSAYS & WRITING STUDIO
+
+This must feel like a premium writing application.
+
+Do not make it look like a basic form.
+
+I want a proper notebook environment where I can write, brainstorm, draft, edit, and refine essays over many months.
+
+The Essays section contains two primary workspaces.
+
+## A. MAIN ESSAY
+
+Create a dedicated Main Essay workspace.
+
+Its appearance should resemble a beautiful premium digital notebook.
+
+Features:
+
+- Large distraction-free editor
+- Rich-text formatting
+- Bold
+- Italic
+- Underline
+- Strikethrough
+- Headings
+- Bullet lists
+- Numbered lists
+- Highlighting
+- Text colors within the official palette
+- Quotes
+- Tables
+- Undo / redo
+- Word count
+- Character count
+- Autosave
+- Manual save
+- Full-screen writing
+- Search within notes
+
+Allow me to create unlimited essays and drafts.
+
+### Draft management
+
+Each essay should have:
+
+- Essay title
+- Essay type
+- Created date
+- Last edited date
+- Draft number
+- Writing status
+- Word count
+- Personal notes
+
+Create a draft history system:
+
+- Brainstorming
+- First Draft
+- Second Draft
+- Improved Draft
+- Final Draft
+
+Allow me to create a new draft from an existing draft.
+
+Never overwrite previous versions automatically.
+
+Include side-by-side draft comparison and version restoration.
+
+### Story Bank
+
+Create a separate section for collecting personal experiences and stories.
+
+Fields:
+- Story title
+- Experience
+- Personal significance
+- Challenge
+- Learning
+- Personal growth
+- Possible essay connection
+- Related ECA
+- Related project
+
+Allow unlimited entries.
+
+I want to collect stories before deciding which one belongs in my main essay.
+
+## B. SUPPLEMENTAL ESSAYS
+
+This must be a university-based notebook collection.
+
+When I enter this section, display all universities I have personally selected in my College List.
+
+Each university should appear with:
+
+- University logo, when available
+- University name
+- Location
+- Category
+- Saved essay count
+
+Clicking a university opens its individual supplemental essay notebook.
+
+Example:
+
+STANFORD UNIVERSITY
+
+Inside the notebook, create:
+
+**1. Research**
+
+Personal notes about the university and its supplemental essay expectations.
+
+**2. Past Essay Questions**
+
+Allow me to manually enter past years' questions.
+
+Fields:
+- Question
+- Application cycle
+- Source URL
+- Year
+- Word limit
+- Notes
+
+**3. Current Application Questions**
+
+Allow me to add the actual questions for my application cycle.
+
+**4. Essay Writing**
+
+For each question, provide:
+- Original question
+- Brainstorming
+- Main idea
+- Outline
+- First draft
+- Second draft
+- Improved draft
+- Final answer
+
+**5. Draft History**
+
+Keep every version.
+
+**6. Personal Notes**
+
+An unrestricted notebook for additional research and ideas.
+
+Repeat this structure independently for every university.
+
+A supplemental essay written for Stanford must never accidentally appear under Harvard.
+
+Allow me to create unlimited questions and drafts.
+
+Do not automatically populate past questions unless reliable sources are available and the application cycle is identified.
+
+# PART 6 — ACADEMICS
+
+Create a dedicated academic archive.
+
+It must contain four separate workspaces:
+
+## A. SAT
+
+Store:
+- Official test dates
+- Practice test records
+- Reading and Writing scores
+- Math scores
+- Total scores
+- Test history
+- Score reports
+- Preparation notes
+- Target scores
+- Weak areas
+- Improvement observations
+
+Allow file uploads for score reports.
+
+## B. HSC
+
+Store:
+- SSC academic history
+- HSC subjects
+- First paper
+- Second paper
+- Subject marks
+- Practical marks
+- Results
+- GPA
+- Board information
+- Examination year
+- Transcript files
+- Academic achievements
+
+Support editing and attaching documents.
+
+Do not assume grades or academic records.
+
+## C. IELTS / TOEFL
+
+Allow me to record:
+- Test type
+- Test date
+- Overall score
+- Individual section scores
+- Reading
+- Writing
+- Listening
+- Speaking
+- Target score
+- Official score report
+- Retake history
+
+Support multiple attempts.
+
+## D. BANGLADESH ADMISSION TESTS
+
+This section should be a completely open notebook.
+
+I want to write anything related to:
+- University admission preparation
+- Admission test experiences
+- Preparation notes
+- Results
+- Important dates
+- Future plans
+- Reflections
+
+Do not force this section into a fixed form.
+
+# PART 7 — LETTERS OF RECOMMENDATION (LORS)
+
+This section must be a notebook-based writing workspace.
+
+In Bangladesh, teachers may not know all the details of a student's academic and extracurricular journey.
+
+I want to prepare detailed recommendation drafts and supporting information that teachers can review, personalize, and approve.
+
+Create individual recommendation notebooks.
+
+I expect to prepare approximately five to six recommendation drafts.
+
+Each notebook should contain:
+
+- Teacher's name
+- Subject
+- Position
+- Institution
+- How long the teacher has known me
+- Classes taught
+- Academic strengths
+- Personal observations
+- Relevant experiences
+- Projects
+- Achievements
+- Leadership
+- Specific examples
+- Personal notes
+
+Provide a premium writing editor for the actual recommendation draft.
+
+Support:
+- Unlimited drafts
+- Version history
+- Rich-text formatting
+- Autosave
+- Export
+- Document attachments
+
+Include a separate teacher information and context notebook.
+
+Do not automatically present student-written drafts as teacher-approved recommendations.
+
+# PART 8 — STATEMENT OF PURPOSE (SOP)
+
+Create a separate SOP workspace using the same premium notebook interface.
+
+Allow me to create multiple SOP drafts.
+
+Each document should support:
+
+- Title
+- University or program
+- Purpose
+- Academic background
+- Personal motivation
+- Academic interests
+- Future goals
+- Relevant experiences
+- Research interests
+- Drafts
+- Final version
+- Personal notes
+
+Support unlimited documents and version history.
+
+Keep SOP documents separate from Main Essays and Supplemental Essays.
+
+# PART 9 — ECAS & ACHIEVEMENTS
+
+Create an open activity database.
+
+I want to document everything I have done throughout my academic and personal journey.
+
+Allow unlimited activity entries.
+
+Each activity should have an individual notebook.
+
+Suggested fields:
+
+- Activity name
+- Organization
+- Activity category
+- Position
+- Role
+- Start date
+- End date
+- Hours per week
+- Weeks per year
+- Years involved
+- Responsibilities
+- Achievements
+- Leadership
+- Community impact
+- Personal growth
+- Skills developed
+- Measurable outcomes
+- Evidence and certificates
+- Personal reflections
+
+Allow categories such as:
+
+- Academic competitions
+- Olympiads
+- Research
+- Volunteering
+- Leadership
+- Entrepreneurship
+- Sports
+- Arts
+- Community service
+- Internships
+- Independent learning
+- Other activities
+
+Include an unrestricted notes area.
+
+Support:
+- Add
+- Edit
+- Delete
+- Reorder
+- Archive
+- Attach documents
+- Export individual activities
+
+Do not prepopulate fictional extracurricular activities.
+
+# PART 10 — PASSION PROJECT IDEAS
+
+This must be an idea and project management notebook.
+
+I want to record every possible passion project idea, even before I decide whether to execute it.
+
+Create two primary views:
+
+**IDEA BANK**
+
+Store:
+- Project title
+- Problem being addressed
+- Idea description
+- Why I want to pursue it
+- Target audience
+- Possible impact
+- Required resources
+- Skills required
+- Research
+- Challenges
+- Expected outcomes
+- Personal notes
+
+**ACTIVE PROJECTS**
+
+Each selected idea should become an individual project workspace.
+
+Include:
+
+- Project overview
+- Research
+- Planning
+- Objectives
+- Milestones
+- Tasks
+- Development log
+- Weekly progress notes
+- Challenges
+- Results
+- Impact
+- Evidence
+- Documentation
+- Final reflection
+
+Allow me to move an idea into Active Projects without losing its original notes.
+
+Do not invent project outcomes or progress.
+
+# PART 11 — APPLICATION STRATEGY
+
+Create a dedicated educational planning workspace.
+
+I need to understand and organize the differences between:
+
+- Early Decision (ED)
+- Early Action (EA)
+- Restrictive Early Action (REA)
+- Regular Decision (RD)
+
+Create separate informational notebooks explaining:
+
+- What each application round means
+- Binding versus non-binding commitments
+- Restrictions
+- Application timelines
+- Financial aid considerations
+- International applicant considerations
+- Important exceptions
+- How to evaluate my choices
+
+Create a university-specific decision planner.
+
+For each university, let me record:
+
+- Available rounds
+- My preferred round
+- Intended application round
+- Reasons
+- Deadline
+- Financial aid considerations
+- Personal decision
+- Related notes
+
+Include a master application calendar.
+
+Important: Do not assume all universities follow identical policies or deadlines. University-specific policies must be verified using official admissions sources.
+
+# PART 12 — RESEARCH VAULT
+
+Create a centralized research library.
+
+I want to save information that may be useful during my entire application journey.
+
+Support:
+- Text notes
+- URLs
+- PDFs
+- Images
+- Documents
+- Screenshots
+- Research summaries
+- Bookmarks
+
+Categories:
+- University research
+- Admission requirements
+- Financial aid
+- Scholarships
+- International students
+- Essays
+- SAT
+- IELTS / TOEFL
+- ECAs
+- Passion projects
+- Application strategy
+- Visa information
+
+Each resource should support:
+- Title
+- Description
+- Category
+- Source URL
+- Date added
+- Last verified
+- Tags
+- Related university
+- Related essay
+- Personal notes
+
+Allow me to connect one research item to multiple relevant records without duplicating its contents.
+
+# PART 13 — GLOBAL NOTEBOOK SYSTEM
+
+This is a fundamental requirement.
+
+Every major writing section must use a shared premium notebook engine.
+
+The notebook should support:
+
+- Unlimited pages
+- Unlimited entries
+- Rich-text editing
+- Highlighting
+- Crossed-out text
+- Headings
+- Lists
+- Tables
+- Quotes
+- Images
+- Document attachments
+- Links
+- Autosave
+- Search
+- Version history
+- Export to PDF
+- Export to DOCX where supported
+- Full-screen writing
+- Dark/light reading preference
+
+Notebook content must be searchable through global search.
+
+Each notebook must retain its own independent identity and associated records.
+
+Do not create one giant text field for an entire section.
+
+# PART 14 — DATA ARCHITECTURE
+
+Use the existing application's shared database and architecture.
+
+Do not create a conflicting second database.
+
+Every module must have a consistent data relationship.
+
+Important relationships:
+
+- One university can have multiple research entries.
+- One university can have multiple supplemental essay questions.
+- Each question can have multiple drafts.
+- One main essay can have multiple versions.
+- One ECA can have multiple evidence attachments.
+- One passion project can have multiple milestones.
+- One academic test can have multiple attempts.
+- One recommendation notebook can have multiple drafts.
+- Research entries can be linked to universities and other application records.
+
+Requirements:
+
+- Persistent storage
+- Autosave
+- Refresh-safe records
+- No duplicate records
+- Backup compatibility
+- Export compatibility
+- Correct date handling
+- Search and filtering
+- Safe deletion and recovery where supported
+
+Never reset existing data during implementation.
+
+# PART 15 — ADMIN AND PERSONAL CUSTOMIZATION
+
+I am the owner and administrator.
+
+Allow me to:
+
+- Customize dashboard widgets
+- Reorder dashboard sections
+- Hide and show sections
+- Change layout sizes
+- Rename personal categories
+- Add custom notebook templates
+- Customize tags
+- Manage research categories
+- Export my records
+- Configure application cycle
+- Customize motivational text
+
+Save these preferences persistently.
+
+# PART 16 — USER EXPERIENCE
+
+Desktop:
+- Spacious sidebar
+- Multiple content columns
+- Large notebook workspaces
+- Full-width editing environment
+
+Tablet:
+- Adaptive grid
+- Collapsible sidebar
+- Comfortable notebook editing
+
+Mobile:
+- Single-column layout
+- Touch-friendly controls
+- Responsive notebooks
+- No horizontal overflow
+- Accessible navigation
+
+Every interactive element must work.
+
+Include:
+- Loading states
+- Empty states
+- Error handling
+- Save confirmation
+- Keyboard accessibility
+- Search
+- Sorting
+- Filtering
+- Confirmation before destructive actions
+
+# PART 17 — IMPLEMENTATION WORKFLOW
+
+Before making changes:
+
+1. Inspect the existing application.
+2. Identify its framework.
+3. Inspect existing components.
+4. Inspect database architecture.
+5. Identify current navigation.
+6. Identify existing shared storage.
+7. Inspect current styling.
+8. Identify possible integration conflicts.
+
+Then prepare an implementation plan.
+
+Implement the USA Application module inside the existing application.
+
+Do not replace the existing dashboard or remove current modules.
+
+Do not create fake records for demonstration.
+
+Use empty states until I enter my personal information.
+
+After implementation, test:
+
+- Every navigation item
+- Every college category
+- University creation and editing
+- University research notebooks
+- Essay creation and versioning
+- Supplemental essay separation
+- Academic records
+- LOR notebooks
+- SOP drafts
+- ECA management
+- Passion project management
+- Research Vault
+- Search
+- File attachments
+- Autosave
+- Data persistence after refresh
+- Export
+- Responsive layouts
+
+Fix all broken interactions and errors.
+
+# FINAL PRODUCT VISION
+
+I do not want an ordinary college application tracker.
+
+I want a personal admissions operating system that I can use every single day from now until my Fall 2028 applications are submitted.
+
+I will research universities one by one.
+
+I will save their requirements and admission information.
+
+I will write my personal stories and develop multiple essay drafts.
+
+I will prepare recommendation drafts and supporting information.
+
+I will document my academic history, achievements, activities, and projects.
+
+I will learn application strategies and record my decisions.
+
+I will gradually build a complete personal archive of everything relevant to my university applications.
+
+The software should make that entire journey organized, searchable, editable, and manageable.
+
+**The most important principle: I provide the research and personal information; the application provides the structure, organization, writing environment, relationships, and persistence.**
+
+Do not fabricate personal information, university statistics, requirements, admission policies, deadlines, or achievements.
+
+Build the actual functional system, not just a visual prototype.
+
+Preserve the existing COMEBACK STUDY TRACKER completely.
+
+**FINAL STANDARD: A premium, deeply organized, fully functional personal USA university admissions knowledge base for Fall 2028.**
