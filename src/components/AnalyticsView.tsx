@@ -141,12 +141,16 @@ export const AnalyticsView: React.FC = () => {
   // 2. DAILY STUDY HOURS (Last 7 Days Chart)
   const dailyStudyData = useMemo(() => {
     const days: { label: string; dateStr: string; hours: number }[] = [];
-    const base = new Date(`${user.currentDate}T00:00:00`);
+    const [by, bm, bd] = (user.currentDate || "2026-11-10").split('-').map(Number);
+    const base = new Date(by, (bm || 1) - 1, bd || 1);
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(base);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dy = d.getFullYear();
+      const dm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${dy}-${dm}-${dd}`;
       const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
 
       const daySec = sessionRecords
@@ -167,7 +171,8 @@ export const AnalyticsView: React.FC = () => {
   // 3. WEEKLY STUDY HOURS (Last 4 Weeks Comparison)
   const weeklyStudyData = useMemo(() => {
     const weeks: { label: string; hours: number }[] = [];
-    const base = new Date(`${user.currentDate}T00:00:00`);
+    const [by, bm, bd] = (user.currentDate || "2026-11-10").split('-').map(Number);
+    const base = new Date(by, (bm || 1) - 1, bd || 1);
 
     for (let w = 3; w >= 0; w--) {
       const start = new Date(base);

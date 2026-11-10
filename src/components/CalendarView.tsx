@@ -78,6 +78,20 @@ export const CalendarView: React.FC = () => {
     "July", "August", "September", "October", "November", "December"
   ];
 
+  // Timezone-safe local date formatting helpers
+  const formatLocalDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const parseLocalDate = (dateStr: string): Date => {
+    if (!dateStr) return new Date();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
   // Navigation handlers
   const handlePrev = () => {
     if (viewMode === 'month') {
@@ -86,13 +100,13 @@ export const CalendarView: React.FC = () => {
         return { year: prev.year, month: prev.month - 1 };
       });
     } else if (viewMode === 'day') {
-      const cur = new Date(`${selectedDate}T00:00:00`);
+      const cur = parseLocalDate(selectedDate);
       cur.setDate(cur.getDate() - 1);
-      setSelectedDate(cur.toISOString().split('T')[0]);
+      setSelectedDate(formatLocalDate(cur));
     } else if (viewMode === 'week') {
-      const cur = new Date(`${selectedDate}T00:00:00`);
+      const cur = parseLocalDate(selectedDate);
       cur.setDate(cur.getDate() - 7);
-      setSelectedDate(cur.toISOString().split('T')[0]);
+      setSelectedDate(formatLocalDate(cur));
     }
   };
 
@@ -103,19 +117,19 @@ export const CalendarView: React.FC = () => {
         return { year: prev.year, month: prev.month + 1 };
       });
     } else if (viewMode === 'day') {
-      const cur = new Date(`${selectedDate}T00:00:00`);
+      const cur = parseLocalDate(selectedDate);
       cur.setDate(cur.getDate() + 1);
-      setSelectedDate(cur.toISOString().split('T')[0]);
+      setSelectedDate(formatLocalDate(cur));
     } else if (viewMode === 'week') {
-      const cur = new Date(`${selectedDate}T00:00:00`);
+      const cur = parseLocalDate(selectedDate);
       cur.setDate(cur.getDate() + 7);
-      setSelectedDate(cur.toISOString().split('T')[0]);
+      setSelectedDate(formatLocalDate(cur));
     }
   };
 
   const handleToday = () => {
     setSelectedDate(user.currentDate);
-    const d = new Date(`${user.currentDate}T00:00:00`);
+    const d = parseLocalDate(user.currentDate);
     setSelectedMonth({ year: d.getFullYear(), month: d.getMonth() });
   };
 
@@ -192,7 +206,7 @@ export const CalendarView: React.FC = () => {
 
   // Weekly Grid Generation
   const weekDays = useMemo(() => {
-    const sel = new Date(`${selectedDate}T00:00:00`);
+    const sel = parseLocalDate(selectedDate);
     const dayOfWeek = sel.getDay();
     const startOffset = (dayOfWeek + 6) % 7; // Monday offset
     const monday = new Date(sel);
@@ -202,7 +216,7 @@ export const CalendarView: React.FC = () => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
       d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(d);
       const dayEvs = events.filter(e => e.date === dateStr);
       days.push({
         label: d.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -217,9 +231,9 @@ export const CalendarView: React.FC = () => {
 
   // Upcoming Events Panel Data
   const upcomingChronological = useMemo(() => {
-    const ref = new Date(`${user.currentDate}T00:00:00`);
+    const ref = parseLocalDate(user.currentDate);
     return [...events]
-      .filter(e => new Date(`${e.date}T00:00:00`) >= ref)
+      .filter(e => parseLocalDate(e.date) >= ref)
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [events, user.currentDate]);
 

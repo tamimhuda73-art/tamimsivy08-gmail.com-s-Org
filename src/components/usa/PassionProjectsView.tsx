@@ -9,20 +9,17 @@ import {
   ArrowRight, 
   CheckSquare, 
   Square, 
-  ExternalLink,
-  ChevronRight,
-  TrendingUp,
+  ChevronRight, 
+  Laptop, 
+  Globe, 
+  Brain, 
+  Bookmark, 
+  Edit2, 
+  Download, 
+  Sparkles, 
+  FileText,
   Clock,
-  Laptop,
-  Globe,
-  Brain,
-  Bookmark,
-  Edit2,
-  FolderArchive,
-  MoreHorizontal,
-  Download,
-  Sparkles,
-  FileText
+  BookOpen
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { EditableDate } from './EditableDate';
@@ -32,34 +29,181 @@ export const PassionProjectsView: React.FC = () => {
     passionProjectIdeas, 
     activePassionProjects, 
     addPassionProjectIdea, 
+    deletePassionProjectIdea,
     promoteIdeaToActiveProject,
+    addActivePassionProject,
+    updateActivePassionProject,
+    deleteActivePassionProject,
+    addProjectMilestone,
+    toggleProjectMilestone,
+    addStoryBankEntry,
     setActiveTab
   } = useUsaApp();
 
-  const [selectedActiveProjectId, setSelectedActiveProjectId] = useState<string>('proj-1');
-  const [detailTab, setDetailTab] = useState<'overview' | 'research' | 'tasks' | 'devlog' | 'results' | 'notes'>('overview');
+  const [selectedActiveProjectId, setSelectedActiveProjectId] = useState<string | null>(
+    activePassionProjects.length > 0 ? activePassionProjects[0].id : null
+  );
+  const [detailTab, setDetailTab] = useState<'overview' | 'milestones' | 'devlog' | 'impact'>('overview');
 
-  // Dates state for editable dates
-  const [startDate, setStartDate] = useState('Nov 1, 2025');
-  const [targetDate, setTargetDate] = useState('Dec 31, 2025');
-  const [recentUpdateDate, setRecentUpdateDate] = useState('Nov 3, 2025 • 2:15 PM');
+  // Modal states
+  const [newIdeaModalOpen, setNewIdeaModalOpen] = useState(false);
+  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const [newMilestoneText, setNewMilestoneText] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Goals checklist state
-  const [goals, setGoals] = useState([
-    { id: 'g1', text: 'Develop a working prototype', checked: true },
-    { id: 'g2', text: 'Test with real study data', checked: true },
-    { id: 'g3', text: 'Document the process', checked: true },
-  ]);
+  // New Idea form
+  const [ideaForm, setIdeaForm] = useState({
+    projectTitle: '',
+    ideaDescription: '',
+    problemBeingAddressed: '',
+    whyIPursueIt: '',
+    targetAudience: '',
+    possibleImpact: '',
+    requiredResources: '',
+    skillsRequired: '',
+    researchNotes: '',
+    challengesAnticipated: '',
+    expectedOutcomes: '',
+    personalNotes: ''
+  });
 
-  const toggleGoal = (id: string) => {
-    setGoals(prev => prev.map(g => g.id === id ? { ...g, checked: !g.checked } : g));
+  // New Project form
+  const [projectForm, setProjectForm] = useState({
+    projectTitle: '',
+    status: 'Active Development' as const,
+    overview: '',
+    research: '',
+    planning: '',
+    objectives: '',
+    weeklyProgressNotes: '',
+    challengesAndSolutions: '',
+    results: '',
+    impact: '',
+    finalReflection: ''
+  });
+
+  const activeProject = activePassionProjects.find(p => p.id === selectedActiveProjectId) || activePassionProjects[0] || null;
+
+  const totalIdeasCount = passionProjectIdeas.length;
+  const inProgressCount = activePassionProjects.filter(p => p.status !== 'Completed').length;
+  const completedCount = activePassionProjects.filter(p => p.status === 'Completed').length;
+
+  const handleCreateIdea = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ideaForm.projectTitle.trim()) return;
+
+    addPassionProjectIdea({
+      ...ideaForm,
+      projectTitle: ideaForm.projectTitle.trim(),
+      ideaDescription: ideaForm.ideaDescription.trim()
+    });
+
+    setIdeaForm({
+      projectTitle: '',
+      ideaDescription: '',
+      problemBeingAddressed: '',
+      whyIPursueIt: '',
+      targetAudience: '',
+      possibleImpact: '',
+      requiredResources: '',
+      skillsRequired: '',
+      researchNotes: '',
+      challengesAnticipated: '',
+      expectedOutcomes: '',
+      personalNotes: ''
+    });
+    setNewIdeaModalOpen(false);
+    showToast('Project idea added to bank.');
+  };
+
+  const handleCreateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectForm.projectTitle.trim()) return;
+
+    const newId = addActivePassionProject({
+      ...projectForm,
+      projectTitle: projectForm.projectTitle.trim(),
+      overview: projectForm.overview.trim(),
+      milestones: [
+        { id: `m-${Date.now()}-1`, title: 'Define project scope & goals', completed: true },
+        { id: `m-${Date.now()}-2`, title: 'Build working prototype / initial study', completed: false },
+        { id: `m-${Date.now()}-3`, title: 'Publish results / community launch', completed: false }
+      ],
+      tasks: [],
+      devLog: [
+        { id: `log-${Date.now()}`, date: new Date().toLocaleDateString(), title: 'Project kicked off', summary: 'Outlined roadmap and initial milestones.' }
+      ],
+      evidenceAndDocLinks: []
+    });
+
+    setSelectedActiveProjectId(newId);
+    setProjectForm({
+      projectTitle: '',
+      status: 'Active Development',
+      overview: '',
+      research: '',
+      planning: '',
+      objectives: '',
+      weeklyProgressNotes: '',
+      challengesAndSolutions: '',
+      results: '',
+      impact: '',
+      finalReflection: ''
+    });
+    setNewProjectModalOpen(false);
+    showToast('New active project started.');
+  };
+
+  const handlePromoteIdea = (ideaId: string) => {
+    const newProjId = promoteIdeaToActiveProject(ideaId);
+    setSelectedActiveProjectId(newProjId);
+    showToast('Idea promoted to Active Projects!');
+  };
+
+  const handleSendProjectToStoryBank = (proj: typeof activeProject) => {
+    if (!proj) return;
+    addStoryBankEntry({
+      storyTitle: `Passion Project: ${proj.projectTitle}`,
+      experience: proj.overview || `Led independent initiative "${proj.projectTitle}".`,
+      personalSignificance: proj.impact || 'Demonstrated self-directed inquiry and initiative outside school curriculum.',
+      challenge: proj.challengesAndSolutions || 'Troubleshooting technical/logistical blockers independently.',
+      learning: 'Independent research rigor, iterative problem solving, and intellectual vitality.',
+      personalGrowth: proj.finalReflection || 'Discovered confidence in building solutions from scratch.',
+      possibleEssayConnection: 'Common App Academic Passion or Problem Solved Essay',
+      relatedProject: proj.projectTitle
+    });
+    showToast(`Added "${proj.projectTitle}" to Essay Story Bank!`);
+  };
+
+  const handleAddMilestone = () => {
+    if (!activeProject || !newMilestoneText.trim()) return;
+    addProjectMilestone(activeProject.id, {
+      title: newMilestoneText.trim(),
+      completed: false
+    });
+    setNewMilestoneText('');
+  };
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const exportProjectsReport = () => {
     let doc = `# PASSION PROJECTS & INDEPENDENT INITIATIVES\nGenerated: ${new Date().toLocaleDateString()}\n\n`;
-    doc += `## Project: AI Study Assistant\n`;
-    doc += `Timeline: Started ${startDate} | Target ${targetDate} | Progress: 70%\n`;
-    doc += `Overview: A personal project to build an AI-powered study assistant with features like personalized study plans, progress tracking, and smart recommendations.\n\n`;
+    activePassionProjects.forEach((proj, idx) => {
+      doc += `## ${idx + 1}. ${proj.projectTitle} [${proj.status}]\n`;
+      doc += `Overview:\n${proj.overview || 'In progress'}\n\n`;
+      if (proj.milestones.length > 0) {
+        doc += `Milestones:\n`;
+        proj.milestones.forEach(m => {
+          doc += `- [${m.completed ? 'x' : ' '}] ${m.title}\n`;
+        });
+        doc += `\n`;
+      }
+      if (proj.impact) doc += `Impact: ${proj.impact}\n\n`;
+      doc += `---\n\n`;
+    });
     const blob = new Blob([doc], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -72,6 +216,14 @@ export const PassionProjectsView: React.FC = () => {
   return (
     <div className="space-y-6">
       
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-[#3B302A] text-white px-4 py-2.5 rounded-xl text-xs font-mono shadow-xl border border-stone-700 flex items-center gap-2 animate-bounce">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Breadcrumb & Title */}
       <div>
         <div className="flex items-center gap-1.5 text-xs text-stone-500 font-sans mb-1">
@@ -93,7 +245,7 @@ export const PassionProjectsView: React.FC = () => {
         </p>
       </div>
 
-      {/* Hero Banner with Stats (Matches image_dbcb27a3.png) */}
+      {/* Hero Banner with Dynamic Stats */}
       <div className="bg-[#3B302A] text-white rounded-2xl p-6 sm:p-7 shadow-sm border border-[#29231E]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4 max-w-xl">
@@ -102,7 +254,7 @@ export const PassionProjectsView: React.FC = () => {
             </div>
             <div>
               <p className="font-serif italic text-stone-200 text-sm sm:text-base leading-snug">
-                &ldquo;Big ideas start with a single thought.&rdquo;
+                &ldquo;Independent initiatives prove curiosity and execution beyond classroom boundaries.&rdquo;
               </p>
               <span className="text-[11px] font-mono tracking-widest text-[#D8C5AE] uppercase mt-1 block">
                 &mdash; COMEBACK
@@ -117,8 +269,10 @@ export const PassionProjectsView: React.FC = () => {
                 <Brain className="w-5 h-5 text-[#D8C5AE]" />
               </div>
               <div>
-                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">24</span>
-                <span className="text-[11px] text-stone-300 font-sans">Total Ideas</span>
+                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">
+                  {totalIdeasCount}
+                </span>
+                <span className="text-[11px] text-stone-300 font-sans">Project Ideas</span>
               </div>
             </div>
 
@@ -127,8 +281,10 @@ export const PassionProjectsView: React.FC = () => {
                 <Rocket className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">6</span>
-                <span className="text-[11px] text-stone-300 font-sans">Active Projects</span>
+                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">
+                  {inProgressCount}
+                </span>
+                <span className="text-[11px] text-stone-300 font-sans">Active In-Progress</span>
               </div>
             </div>
 
@@ -137,8 +293,10 @@ export const PassionProjectsView: React.FC = () => {
                 <Check className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">3</span>
-                <span className="text-[11px] text-stone-300 font-sans">Completed Projects</span>
+                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">
+                  {completedCount}
+                </span>
+                <span className="text-[11px] text-stone-300 font-sans">Completed</span>
               </div>
             </div>
           </div>
@@ -154,70 +312,94 @@ export const PassionProjectsView: React.FC = () => {
             <div className="flex items-center gap-2">
               <Lightbulb className="w-4 h-4 text-[#3B302A]" />
               <h3 className="text-sm font-bold font-serif text-stone-900">
-                Idea Bank
+                Idea Bank ({passionProjectIdeas.length})
               </h3>
             </div>
             <button 
-              onClick={() => alert('Viewing all 24 project ideas')}
-              className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
+              onClick={() => setNewIdeaModalOpen(true)}
+              className="text-xs font-mono text-stone-800 hover:text-black font-semibold inline-flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded border border-[#E2DBD1]"
             >
-              <span>View All</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3" />
+              <span>New Idea</span>
             </button>
           </div>
 
           <button
-            onClick={() => alert('Log new project idea dialog')}
+            onClick={() => setNewIdeaModalOpen(true)}
             className="w-full py-2 bg-[#3B302A] hover:bg-stone-900 text-white rounded-xl text-xs font-mono font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add New Idea</span>
+            <span>+ Add New Idea</span>
           </button>
 
-          {/* 3 Idea Cards in a Row */}
-          <div className="grid grid-cols-3 gap-3 pt-1">
-            {/* Idea 1 */}
-            <div className="p-3 bg-[#F4EFEA] border border-[#E2DBD1] rounded-xl flex flex-col justify-between space-y-2 relative">
-              <div className="flex items-start justify-between">
-                <Laptop className="w-4 h-4 text-sky-800" />
-                <Bookmark className="w-3.5 h-3.5 text-stone-400 cursor-pointer" />
-              </div>
-              <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-2">
-                Build an AI tool for students
-              </h4>
-              <span className="text-[10px] font-mono text-sky-900 bg-sky-100 px-2 py-0.5 rounded-full inline-block self-start font-medium">
-                Tech
-              </span>
+          {passionProjectIdeas.length === 0 ? (
+            <div className="py-8 text-center space-y-2">
+              <p className="text-xs text-stone-500 font-sans">
+                No project ideas in your bank yet. Brainstorm potential apps, research papers, community initiatives, or podcasts.
+              </p>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {passionProjectIdeas.map(idea => (
+                <div 
+                  key={idea.id}
+                  className="p-3.5 bg-white border border-[#E2DBD1] rounded-xl flex flex-col justify-between space-y-2 relative shadow-2xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-start justify-between gap-1">
+                      <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">
+                        {idea.projectTitle}
+                      </h4>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete idea "${idea.projectTitle}"?`)) {
+                            deletePassionProjectIdea(idea.id);
+                          }
+                        }}
+                        className="text-stone-300 hover:text-rose-600 p-0.5"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {idea.ideaDescription && (
+                      <p className="text-[11px] text-stone-600 font-sans line-clamp-2">
+                        {idea.ideaDescription}
+                      </p>
+                    )}
+                  </div>
 
-            {/* Idea 2 */}
-            <div className="p-3 bg-[#F4EFEA] border border-[#E2DBD1] rounded-xl flex flex-col justify-between space-y-2 relative">
-              <div className="flex items-start justify-between">
-                <Globe className="w-4 h-4 text-emerald-800" />
-                <Bookmark className="w-3.5 h-3.5 text-stone-400 cursor-pointer" />
-              </div>
-              <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-2">
-                Climate Action Awareness App
-              </h4>
-              <span className="text-[10px] font-mono text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-full inline-block self-start font-medium">
-                Social Impact
-              </span>
-            </div>
+                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                    <button
+                      onClick={() => handlePromoteIdea(idea.id)}
+                      className="text-[10px] font-mono text-[#3B302A] hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Promote to Project</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
 
-            {/* Idea 3 */}
-            <div className="p-3 bg-[#F4EFEA] border border-[#E2DBD1] rounded-xl flex flex-col justify-between space-y-2 relative">
-              <div className="flex items-start justify-between">
-                <Brain className="w-4 h-4 text-amber-800" />
-                <Bookmark className="w-3.5 h-3.5 text-stone-400 cursor-pointer" />
-              </div>
-              <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-2">
-                Personal Knowledge Management App
-              </h4>
-              <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full inline-block self-start font-medium">
-                Productivity
-              </span>
+                    <button
+                      onClick={() => {
+                        addStoryBankEntry({
+                          storyTitle: `Idea: ${idea.projectTitle}`,
+                          experience: idea.ideaDescription,
+                          personalSignificance: idea.whyIPursueIt || 'Origin of an intellectual curiosity.',
+                          challenge: idea.challengesAnticipated || '',
+                          learning: 'Formulating hypotheses and project roadmaps.',
+                          personalGrowth: '',
+                          possibleEssayConnection: 'Essay Brainstorming Hook',
+                          relatedProject: idea.projectTitle
+                        });
+                        showToast(`Saved idea to Story Bank!`);
+                      }}
+                      className="text-[10px] font-mono text-amber-800 hover:text-amber-950 font-semibold"
+                    >
+                      + Story Bank
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Active Projects List (6 cols) */}
@@ -226,349 +408,336 @@ export const PassionProjectsView: React.FC = () => {
             <div className="flex items-center gap-2">
               <Rocket className="w-4 h-4 text-[#3B302A]" />
               <h3 className="text-sm font-bold font-serif text-stone-900">
-                Active Projects
+                Active Projects ({activePassionProjects.length})
               </h3>
             </div>
             <button 
-              onClick={() => alert('View all 6 active projects')}
-              className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
+              onClick={() => setNewProjectModalOpen(true)}
+              className="text-xs font-mono text-stone-800 hover:text-black font-semibold inline-flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded border border-[#E2DBD1]"
             >
-              <span>View All</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3" />
+              <span>Start Project</span>
             </button>
           </div>
 
-          <div className="space-y-3">
-            {/* Project 1: AI Study Assistant */}
-            <div 
-              onClick={() => setSelectedActiveProjectId('proj-1')}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                selectedActiveProjectId === 'proj-1'
-                  ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                  : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-14 h-11 rounded-lg bg-stone-300 overflow-hidden shrink-0">
-                  <img 
-                    src="/assets/aistudio/image_c5b776f4.png" 
-                    alt="Laptop" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">AI Study Assistant</h4>
-                  <p className="text-[10px] text-stone-500 font-sans line-clamp-1">Building a smart study companion</p>
-                  <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden mt-1.5">
-                    <div className="bg-[#3B302A] h-full rounded-full" style={{ width: '70%' }} />
-                  </div>
-                </div>
+          {activePassionProjects.length === 0 ? (
+            <div className="py-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#E2DBD1] flex items-center justify-center mx-auto text-stone-400">
+                <Rocket className="w-6 h-6" />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-mono font-bold text-stone-800">70%</span>
-                <span className="text-[10px] font-mono font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                  In Progress
-                </span>
-                <button className="text-stone-400 hover:text-stone-700">:</button>
-              </div>
+              <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
+                No active projects started yet. You can promote an idea from the Idea Bank or launch a fresh project now.
+              </p>
+              <button
+                onClick={() => setNewProjectModalOpen(true)}
+                className="px-3.5 py-1.5 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+              >
+                + Launch First Project
+              </button>
             </div>
+          ) : (
+            <div className="space-y-2.5">
+              {activePassionProjects.map(proj => {
+                const isSelected = activeProject?.id === proj.id;
+                const completedMilestones = proj.milestones.filter(m => m.completed).length;
+                const totalMilestones = proj.milestones.length;
+                const pct = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+                return (
+                  <div 
+                    key={proj.id}
+                    onClick={() => setSelectedActiveProjectId(proj.id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
+                        : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold font-serif text-stone-900 truncate">
+                          {proj.projectTitle}
+                        </h4>
+                        <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full ${
+                          proj.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {proj.status}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-stone-500 font-sans line-clamp-1 mt-0.5">
+                        {proj.overview || 'In active planning/development phase'}
+                      </p>
+                      <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden mt-1.5">
+                        <div className="bg-[#3B302A] h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
 
-            {/* Project 2: Green Future Initiative */}
-            <div 
-              onClick={() => setSelectedActiveProjectId('proj-2')}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                selectedActiveProjectId === 'proj-2'
-                  ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                  : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-14 h-11 rounded-lg bg-stone-300 overflow-hidden shrink-0">
-                  <img 
-                    src="/assets/aistudio/image_73eb3f74.png" 
-                    alt="Green globe" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">Green Future Initiative</h4>
-                  <p className="text-[10px] text-stone-500 font-sans line-clamp-1">Promoting environmental awareness</p>
-                  <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden mt-1.5">
-                    <div className="bg-[#3B302A] h-full rounded-full" style={{ width: '45%' }} />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-mono font-bold text-stone-800">{pct}%</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Delete project "${proj.projectTitle}"?`)) {
+                            deleteActivePassionProject(proj.id);
+                            if (selectedActiveProjectId === proj.id) setSelectedActiveProjectId(null);
+                          }
+                        }}
+                        className="text-stone-300 hover:text-rose-600 p-0.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-mono font-bold text-stone-800">45%</span>
-                <span className="text-[10px] font-mono font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                  In Progress
-                </span>
-                <button className="text-stone-400 hover:text-stone-700">:</button>
-              </div>
+                );
+              })}
             </div>
-
-            {/* Project 3: Data Analytics Project */}
-            <div 
-              onClick={() => setSelectedActiveProjectId('proj-3')}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                selectedActiveProjectId === 'proj-3'
-                  ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                  : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-14 h-11 rounded-lg bg-stone-300 overflow-hidden shrink-0">
-                  <img 
-                    src="/assets/aistudio/image_1bccb426.png" 
-                    alt="Analytics" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">Data Analytics Project</h4>
-                  <p className="text-[10px] text-stone-500 font-sans line-clamp-1">Analyzing academic performance</p>
-                  <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden mt-1.5">
-                    <div className="bg-[#3B302A] h-full rounded-full" style={{ width: '20%' }} />
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-mono font-bold text-stone-800">20%</span>
-                <span className="text-[10px] font-mono font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                  In Progress
-                </span>
-                <button className="text-stone-400 hover:text-stone-700">:</button>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
       </div>
 
-      {/* Bottom Row: Project Details (Left) + Detail Tabs (Center) + Quick Actions & Quote (Right) */}
+      {/* Bottom Row: Project Details & Milestones (when a project exists) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Project Details Panel (4.5 cols) */}
-        <div className="lg:col-span-5 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
-            <div className="flex items-center gap-2">
-              <Laptop className="w-4 h-4 text-[#3B302A]" />
-              <h3 className="text-sm font-bold font-serif text-stone-900">
-                Project Details
-              </h3>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-mono text-stone-600">
-              <button className="hover:text-stone-900 flex items-center gap-1"><Edit2 className="w-3 h-3" /> Edit</button>
-              <span>&bull;</span>
-              <button className="hover:text-stone-900">Move to Active</button>
-              <span>&bull;</span>
-              <button className="hover:text-stone-900">Archive</button>
-            </div>
-          </div>
+        {/* Project Details Panel (6 cols) */}
+        <div className="lg:col-span-6 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-4">
+          {activeProject ? (
+            <>
+              <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Laptop className="w-4 h-4 text-[#3B302A] shrink-0" />
+                  <h3 className="text-sm font-bold font-serif text-stone-900 truncate">
+                    {activeProject.projectTitle}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={activeProject.status}
+                    onChange={(e) => updateActivePassionProject(activeProject.id, { status: e.target.value as any })}
+                    className="px-2 py-1 bg-white border border-[#E2DBD1] rounded-lg text-xs font-mono text-stone-800 cursor-pointer"
+                  >
+                    <option value="In Planning">In Planning</option>
+                    <option value="Active Development">Active Development</option>
+                    <option value="Testing / Pilot">Testing / Pilot</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Paused">Paused</option>
+                  </select>
 
-          <div className="flex items-start gap-4">
-            <div className="w-24 h-24 rounded-xl bg-stone-300 overflow-hidden shrink-0">
-              <img 
-                src="/assets/aistudio/image_c5b776f4.png" 
-                alt="Lightbulb on books" 
-                className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
-            </div>
-            <div className="space-y-1.5 flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h4 className="text-base font-bold font-serif text-stone-900">AI Study Assistant</h4>
-                <Edit2 className="w-3.5 h-3.5 text-stone-400 cursor-pointer" />
+                  <button
+                    onClick={() => handleSendProjectToStoryBank(activeProject)}
+                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-mono font-medium flex items-center gap-1 cursor-pointer"
+                    title="Convert this project's lessons into an Essay Story"
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    <span>Story Bank</span>
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-stone-600 font-sans leading-relaxed">
-                Building a smart study companion to help students plan, track and improve their studies efficiently.
+
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">Project Overview</label>
+                <textarea
+                  rows={3}
+                  value={activeProject.overview}
+                  onChange={(e) => updateActivePassionProject(activeProject.id, { overview: e.target.value })}
+                  placeholder="Describe what you are building and why it matters..."
+                  className="w-full p-2.5 bg-white border border-[#E2DBD1] rounded-xl text-xs font-serif text-stone-800 leading-relaxed focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">Impact &amp; Results</label>
+                <textarea
+                  rows={2}
+                  value={activeProject.impact}
+                  onChange={(e) => updateActivePassionProject(activeProject.id, { impact: e.target.value })}
+                  placeholder="Community users, github stars, publications, or measurable changes..."
+                  className="w-full p-2.5 bg-white border border-[#E2DBD1] rounded-xl text-xs font-serif text-stone-800 leading-relaxed focus:outline-none"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="py-16 text-center space-y-2">
+              <p className="text-xs text-stone-500 font-sans">
+                Select or start a passion project above to view its dossier.
               </p>
-              <div className="flex items-center gap-1.5 pt-1">
-                <span className="text-[10px] font-mono bg-sky-100 text-sky-900 px-2 py-0.5 rounded-full font-medium">Tech</span>
-                <span className="text-[10px] font-mono bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-medium">Productivity</span>
-                <span className="text-[10px] font-mono bg-purple-100 text-purple-900 px-2 py-0.5 rounded-full font-medium">AI</span>
-              </div>
             </div>
-          </div>
-
-          {/* Dates & Status Grid */}
-          <div className="grid grid-cols-2 gap-3 p-3 bg-white rounded-xl border border-[#EAE4DC] text-xs font-mono">
-            <div>
-              <span className="text-stone-500 text-[10px] block">Started:</span>
-              <EditableDate value={startDate} onChange={setStartDate} className="text-stone-800 font-bold" />
-            </div>
-            <div>
-              <span className="text-stone-500 text-[10px] block">Current Progress:</span>
-              <span className="text-stone-900 font-bold">70%</span>
-            </div>
-            <div>
-              <span className="text-stone-500 text-[10px] block">Target:</span>
-              <EditableDate value={targetDate} onChange={setTargetDate} className="text-stone-800 font-bold" />
-            </div>
-            <div>
-              <span className="text-stone-500 text-[10px] block">Milestones:</span>
-              <span className="text-stone-900 font-bold">3 / 5</span>
-            </div>
-            <div className="col-span-2 pt-2 border-t border-stone-100 flex items-center justify-between">
-              <span className="text-stone-500 text-[10px]">Status:</span>
-              <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                In Progress
-              </span>
-            </div>
-          </div>
-
-          {/* Project Progress Bar */}
-          <div>
-            <div className="flex items-center justify-between text-xs font-mono mb-1">
-              <span className="text-stone-600">Overall Project Completion</span>
-              <strong className="text-stone-900 text-sm">70%</strong>
-            </div>
-            <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
-              <div className="bg-[#3B302A] h-full rounded-full" style={{ width: '70%' }} />
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Center / Right: Tabbed Details & Updates (4 cols) */}
-        <div className="lg:col-span-4 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-[#EAE4DC] pb-2 overflow-x-auto text-xs font-mono">
-              {[
-                { id: 'overview', label: 'Overview' },
-                { id: 'research', label: 'Research' },
-                { id: 'tasks', label: 'Tasks' },
-                { id: 'devlog', label: 'Development Log' },
-                { id: 'results', label: 'Results' },
-                { id: 'notes', label: 'Notes' },
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setDetailTab(t.id as any)}
-                  className={`pb-1 cursor-pointer transition-colors whitespace-nowrap ${
-                    detailTab === t.id
-                      ? 'border-b-2 border-[#3B302A] font-bold text-stone-900'
-                      : 'text-stone-500 hover:text-stone-800'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+        {/* Milestones & Progress (6 cols) */}
+        <div className="lg:col-span-6 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-[#3B302A]" />
+              <h3 className="text-sm font-bold font-serif text-stone-900">
+                Milestones &amp; Next Steps
+              </h3>
             </div>
+            {activeProject && (
+              <span className="text-xs font-mono text-stone-500">
+                {activeProject.milestones.filter(m => m.completed).length} / {activeProject.milestones.length} done
+              </span>
+            )}
+          </div>
 
-            {/* Overview Content */}
+          {activeProject ? (
             <div className="space-y-3">
-              <div>
-                <h4 className="text-xs font-bold font-serif text-stone-900 mb-1">
-                  Project Overview
-                </h4>
-                <p className="text-xs text-stone-700 font-sans leading-relaxed">
-                  A personal project to build an AI-powered study assistant with features like personalized study plans, progress tracking, and smart recommendations.
-                </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newMilestoneText}
+                  onChange={(e) => setNewMilestoneText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddMilestone(); }}
+                  placeholder="Add next project milestone..."
+                  className="flex-1 px-3 py-1.5 bg-white border border-[#E2DBD1] rounded-xl text-xs font-sans"
+                />
+                <button
+                  onClick={handleAddMilestone}
+                  className="px-3 py-1.5 bg-[#3B302A] text-white rounded-xl text-xs font-mono cursor-pointer"
+                >
+                  Add
+                </button>
               </div>
 
-              {/* Goals */}
-              <div className="space-y-1.5 pt-1">
-                <h5 className="text-[11px] font-mono uppercase text-stone-600 font-bold">Goals</h5>
-                {goals.map(g => (
-                  <div 
-                    key={g.id}
-                    onClick={() => toggleGoal(g.id)}
-                    className="flex items-center gap-2 text-xs text-stone-700 font-sans cursor-pointer hover:text-stone-900"
+              <div className="space-y-2 pt-1 max-h-56 overflow-y-auto">
+                {activeProject.milestones.map(m => (
+                  <div
+                    key={m.id}
+                    onClick={() => toggleProjectMilestone(activeProject.id, m.id)}
+                    className="flex items-center justify-between p-2 rounded-xl bg-white border border-stone-200 cursor-pointer hover:bg-stone-50"
                   >
-                    <CheckSquare className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                    <span>{g.text}</span>
+                    <div className="flex items-center gap-2.5">
+                      {m.completed ? (
+                        <CheckSquare className="w-4 h-4 text-emerald-700 shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-stone-400 shrink-0" />
+                      )}
+                      <span className={`text-xs ${m.completed ? 'line-through text-stone-400' : 'text-stone-900'}`}>
+                        {m.title}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* Recent Updates */}
-          <div className="pt-3 border-t border-[#EAE4DC]">
-            <div className="flex items-center justify-between pb-1.5">
-              <span className="text-xs font-bold font-serif text-stone-900">Recent Updates</span>
-              <button className="text-[11px] font-mono text-stone-500 hover:text-stone-900">View All &rarr;</button>
+          ) : (
+            <div className="py-16 text-center text-xs text-stone-500 font-sans">
+              No active project selected.
             </div>
-            <div className="relative pl-3 before:content-[''] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-stone-400 rounded-full">
-              <h5 className="text-xs font-semibold text-stone-900">Added new feature: study planner</h5>
-              <div className="mt-0.5">
-                <EditableDate
-                  value={recentUpdateDate}
-                  onChange={setRecentUpdateDate}
-                  className="text-[10px] font-mono text-stone-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column (3 cols): Quick Actions + Quote */}
-        <div className="lg:col-span-3 space-y-4 flex flex-col justify-between">
-          
-          {/* Quick Actions */}
-          <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-2.5">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#EAE4DC]">
-              <Sparkles className="w-4 h-4 text-[#3B302A]" />
-              <h3 className="text-sm font-bold font-serif text-stone-900">
-                Quick Actions
-              </h3>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => alert('Add new project dialog')}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <Plus className="w-3.5 h-3.5 text-stone-600" />
-                <span>Add New Project</span>
-              </button>
-
-              <button
-                onClick={() => alert('Add project idea')}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-stone-600" />
-                <span>Add Idea</span>
-              </button>
-
-              <button
-                onClick={() => alert('Project Templates: Open Source Tool, Scientific Research Study, Social Initiative')}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <FileText className="w-3.5 h-3.5 text-stone-600" />
-                <span>View Templates</span>
-              </button>
-
-              <button
-                onClick={exportProjectsReport}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <Download className="w-3.5 h-3.5 text-stone-600" />
-                <span>Export Projects</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Library Quote Card */}
-          <div className="bg-[#3B302A] text-white rounded-2xl p-5 shadow-xs border border-[#29231E] relative overflow-hidden flex flex-col justify-end min-h-[140px]">
-            <div className="relative z-10 space-y-2">
-              <span className="text-2xl font-serif text-[#D8C5AE] leading-none block">&ldquo;</span>
-              <p className="font-serif italic text-stone-200 text-sm leading-snug">
-                Dream it. Plan it. Build it.
-              </p>
-              <span className="text-[10px] font-mono tracking-widest text-[#D8C5AE] uppercase block">
-                &mdash; COMEBACK
-              </span>
-            </div>
-          </div>
-
+          )}
         </div>
 
       </div>
+
+      {/* NEW IDEA MODAL */}
+      {newIdeaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold font-serif text-stone-900">
+              Add Project Idea
+            </h3>
+            <form onSubmit={handleCreateIdea} className="space-y-3">
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">
+                  Idea Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={ideaForm.projectTitle}
+                  onChange={(e) => setIdeaForm({ ...ideaForm, projectTitle: e.target.value })}
+                  placeholder="e.g. Banglish NLP Spell Checker, Solar Cooker for Rural Areas"
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">
+                  Idea Summary
+                </label>
+                <textarea
+                  rows={3}
+                  value={ideaForm.ideaDescription}
+                  onChange={(e) => setIdeaForm({ ...ideaForm, ideaDescription: e.target.value })}
+                  placeholder="Briefly explain the problem, proposed solution, and intended audience..."
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setNewIdeaModalOpen(false)}
+                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+                >
+                  Save Idea
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* NEW PROJECT MODAL */}
+      {newProjectModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold font-serif text-stone-900">
+              Start Active Passion Project
+            </h3>
+            <form onSubmit={handleCreateProject} className="space-y-3">
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">
+                  Project Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={projectForm.projectTitle}
+                  onChange={(e) => setProjectForm({ ...projectForm, projectTitle: e.target.value })}
+                  placeholder="e.g. Bangladesh Climate Impact App"
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">
+                  Initial Overview
+                </label>
+                <textarea
+                  rows={3}
+                  value={projectForm.overview}
+                  onChange={(e) => setProjectForm({ ...projectForm, overview: e.target.value })}
+                  placeholder="What is the goal of this initiative and what do you hope to build?"
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setNewProjectModalOpen(false)}
+                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+                >
+                  Launch Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

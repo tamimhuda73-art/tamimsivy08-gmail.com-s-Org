@@ -15,7 +15,7 @@ export const INITIAL_USER: UserProfile = {
   name: "Tamim",
   initials: "TA",
   email: "tamim@study.app",
-  currentDate: "2026-11-09",
+  currentDate: "2026-11-10",
   useRealCurrentDate: false,
   quote: "Consistency is not perfection. It is simply showing up every day."
 };
@@ -456,71 +456,75 @@ export const INITIAL_HABITS: DailyHabit[] = [
     id: "hab-wake",
     name: "03:00 AM WAKE UP & PRAYER",
     category: "mindset",
-    streak: 9,
+    streak: 10,
     bestStreak: 21,
     history: {
       "2026-11-01": true, "2026-11-02": true, "2026-11-03": true,
       "2026-11-04": true, "2026-11-05": true, "2026-11-06": true,
-      "2026-11-07": true, "2026-11-08": true, "2026-11-09": true
+      "2026-11-07": true, "2026-11-08": true, "2026-11-09": true,
+      "2026-11-10": true
     }
   },
   {
     id: "hab-deepwork",
     name: "4+ HOURS MORNING DEEP WORK",
     category: "study",
-    streak: 8,
+    streak: 9,
     bestStreak: 18,
     history: {
       "2026-11-01": true, "2026-11-02": true, "2026-11-03": true,
       "2026-11-04": true, "2026-11-05": true, "2026-11-06": true,
-      "2026-11-07": true, "2026-11-08": true, "2026-11-09": false
+      "2026-11-07": true, "2026-11-08": true, "2026-11-09": true,
+      "2026-11-10": false
     }
   },
   {
     id: "hab-sat",
     name: "DAILY SAT DESMOS & VOCAB DRILL",
     category: "study",
-    streak: 6,
+    streak: 7,
     bestStreak: 14,
     history: {
       "2026-11-03": true, "2026-11-04": true, "2026-11-05": true,
-      "2026-11-06": true, "2026-11-07": true, "2026-11-08": true
+      "2026-11-06": true, "2026-11-07": true, "2026-11-08": true,
+      "2026-11-09": true, "2026-11-10": true
     }
   },
   {
     id: "hab-cq",
     name: "SOLVE 10 BOARD CREATIVE QUESTIONS",
     category: "study",
-    streak: 7,
+    streak: 8,
     bestStreak: 15,
     history: {
       "2026-11-02": true, "2026-11-03": true, "2026-11-04": true,
       "2026-11-05": true, "2026-11-06": true, "2026-11-07": true,
-      "2026-11-08": true
+      "2026-11-08": true, "2026-11-09": true, "2026-11-10": false
     }
   },
   {
     id: "hab-screen",
     name: "ZERO SOCIAL MEDIA BEFORE 6 PM",
     category: "mindset",
-    streak: 9,
+    streak: 10,
     bestStreak: 25,
     history: {
       "2026-11-01": true, "2026-11-02": true, "2026-11-03": true,
       "2026-11-04": true, "2026-11-05": true, "2026-11-06": true,
-      "2026-11-07": true, "2026-11-08": true, "2026-11-09": true
+      "2026-11-07": true, "2026-11-08": true, "2026-11-09": true,
+      "2026-11-10": true
     }
   },
   {
     id: "hab-sleep",
     name: "BEDTIME BY 9:30 PM",
     category: "health",
-    streak: 8,
+    streak: 9,
     bestStreak: 20,
     history: {
       "2026-11-01": true, "2026-11-02": true, "2026-11-03": true,
       "2026-11-04": true, "2026-11-05": true, "2026-11-06": true,
-      "2026-11-07": true, "2026-11-08": true
+      "2026-11-07": true, "2026-11-08": true, "2026-11-09": true
     }
   }
 ];

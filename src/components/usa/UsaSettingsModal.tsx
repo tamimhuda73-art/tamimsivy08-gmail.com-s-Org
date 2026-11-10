@@ -11,7 +11,8 @@ export const UsaSettingsModal: React.FC<UsaSettingsModalProps> = ({ onClose }) =
     settings, 
     updateSettings, 
     exportUsaDataJSON, 
-    importUsaDataJSON 
+    importUsaDataJSON,
+    resetAllToBlank 
   } = useUsaApp();
 
   const [cycle, setCycle] = useState(settings.applicationCycle);
@@ -166,6 +167,20 @@ export const UsaSettingsModal: React.FC<UsaSettingsModalProps> = ({ onClose }) =
               className="mt-2 px-4 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-mono rounded-lg disabled:opacity-30 cursor-pointer"
             >
               Restore from JSON
+            </button>
+          </div>
+
+          <div className="pt-3 border-t border-stone-100">
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to reset all USA Application portal entries to a completely blank slate? All custom entries will be wiped.')) {
+                  resetAllToBlank();
+                  onClose();
+                }
+              }}
+              className="w-full py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer"
+            >
+              Reset Portal to Clean Blank Slate
             </button>
           </div>
         </div>

@@ -25,6 +25,27 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
     events
   } = useTracker();
 
+  const formattedToday = React.useMemo(() => {
+    try {
+      const parts = (user.currentDate || "2026-11-10").split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const localDate = new Date(y, m, d);
+        return localDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric'
+        }).toUpperCase();
+      }
+    } catch {
+      // fallback
+    }
+    return "TUESDAY, 10 NOVEMBER 2026";
+  }, [user.currentDate]);
+
   return (
     <header className="px-6 sm:px-8 pt-6 pb-4 bg-[#F8F5F0] border-b border-[#EAE6DE]/70 flex flex-col md:flex-row md:items-center justify-between gap-4">
       {/* Left zone: Date pill, Greeting headline, Subtitle */}
@@ -53,7 +74,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
 
           {/* Date pill matching screenshot */}
           <div className="px-3 py-1 bg-[#EFE9DF] border border-[#E2DDD3] text-[11px] font-mono font-bold text-gray-700 rounded-lg uppercase tracking-wider select-none">
-            MONDAY, 09 NOVEMBER 2026
+            {formattedToday}
           </div>
         </div>
 

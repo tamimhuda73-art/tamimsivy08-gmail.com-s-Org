@@ -65,11 +65,11 @@ export const ProfileDrawer: React.FC = () => {
 
               <div className="flex items-center gap-2 text-xs font-mono text-gray-700">
                 <Calendar className="w-4 h-4 text-gray-400" />
-                <span>Reference Day: <strong>{user.currentDate}</strong> (Screenshot Mode)</span>
+                <span>Reference Day: <strong>{user.currentDate}</strong></span>
               </div>
 
               <p className="text-xs text-gray-500 leading-relaxed">
-                Calculations for SAT (125 Days) and HSC (204 Days) synchronize from this academic benchmark.
+                Calculations for SAT ({calculateDaysRemaining(countdowns.find(c => c.id === 'countdown-sat')?.targetDate || '2027-03-06')} Days) and HSC ({calculateDaysRemaining(countdowns.find(c => c.id === 'countdown-hsc')?.targetDate || '2027-06-06')} Days) synchronize from this academic benchmark.
               </p>
             </div>
 

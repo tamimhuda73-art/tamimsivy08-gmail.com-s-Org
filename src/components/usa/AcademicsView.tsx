@@ -52,7 +52,9 @@ export const AcademicsView: React.FC = () => {
     bangladeshAdmissionEntries, 
     addBangladeshAdmissionEntry, 
     updateBangladeshAdmissionEntry, 
-    deleteBangladeshAdmissionEntry 
+    deleteBangladeshAdmissionEntry,
+    universities,
+    setSelectedUniversityId 
   } = useUsaApp();
 
   const [activeTab, setActiveTab] = useState<AcademicSubTab>('overview');
@@ -199,21 +201,8 @@ export const AcademicsView: React.FC = () => {
     });
   };
 
-  const latestSat = satArchive.records[0] || {
-    totalScore: 1520,
-    readingWritingScore: 760,
-    mathScore: 760,
-    testDate: '2025-08-24'
-  };
-
-  const latestIelts = englishTestRecords[0] || {
-    overallScore: '8.0',
-    readingScore: '8.0',
-    writingScore: '7.5',
-    listeningScore: '8.5',
-    speakingScore: '8.0',
-    testDate: '2025-06-15'
-  };
+  const latestSat = satArchive.records[0] || null;
+  const latestIelts = englishTestRecords[0] || null;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1720px] mx-auto space-y-6 text-[#292724]">
@@ -298,53 +287,57 @@ export const AcademicsView: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="flex items-baseline gap-2 mt-3">
-                  <span className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
-                    {latestSat.totalScore}
-                  </span>
-                  <span className="text-xs font-mono text-stone-500">/ 1600</span>
-                  <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#EFE7DC] text-[#3B302A]">
-                    Top 1%
-                  </span>
-                </div>
+                {latestSat ? (
+                  <>
+                    <div className="flex items-baseline gap-2 mt-3">
+                      <span className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
+                        {latestSat.totalScore}
+                      </span>
+                      <span className="text-xs font-mono text-stone-500">/ 1600</span>
+                      <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#EFE7DC] text-[#3B302A]">
+                        {latestSat.testType}
+                      </span>
+                    </div>
 
-                <div className="mt-2 space-y-1 text-[11px] font-mono text-stone-600">
-                  <div className="flex justify-between">
-                    <span>Reading & Writing</span>
-                    <span className="font-bold text-stone-900">{latestSat.readingWritingScore}</span>
+                    <div className="mt-2 space-y-1 text-[11px] font-mono text-stone-600">
+                      <div className="flex justify-between">
+                        <span>Reading & Writing</span>
+                        <span className="font-bold text-stone-900">{latestSat.readingWritingScore}</span>
+                      </div>
+                      <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-[#59483D] h-full rounded-full"
+                          style={{ width: `${(latestSat.readingWritingScore / 800) * 100}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between pt-1">
+                        <span>Math</span>
+                        <span className="font-bold text-stone-900">{latestSat.mathScore}</span>
+                      </div>
+                      <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-[#3B302A] h-full rounded-full"
+                          style={{ width: `${(latestSat.mathScore / 800) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-4 text-center space-y-2">
+                    <span className="text-xs font-mono text-stone-400 block">No SAT test logged</span>
+                    <button
+                      onClick={() => setNewSatModal(true)}
+                      className="px-3 py-1.5 bg-[#3B302A] text-white rounded-lg text-xs font-mono font-bold cursor-pointer"
+                    >
+                      + Add SAT Score
+                    </button>
                   </div>
-                  <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
-                    <div 
-                      className="bg-[#59483D] h-full rounded-full"
-                      style={{ width: `${(latestSat.readingWritingScore / 800) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between pt-1">
-                    <span>Math</span>
-                    <span className="font-bold text-stone-900">{latestSat.mathScore}</span>
-                  </div>
-                  <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
-                    <div 
-                      className="bg-[#3B302A] h-full rounded-full"
-                      style={{ width: `${(latestSat.mathScore / 800) * 100}%` }}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="pt-2 border-t border-stone-100 text-[11px] font-mono text-stone-500 flex items-center justify-between">
-                <span>Test Date:</span>
-                <EditableDate 
-                  value={latestSat.testDate}
-                  onSave={(newDate) => {
-                    if (satArchive.records[0]) {
-                      const updated = [...satArchive.records];
-                      updated[0] = { ...updated[0], testDate: newDate };
-                      updateSatArchive({ records: updated });
-                    }
-                  }}
-                  displayMode="badge"
-                />
+                <span>Target:</span>
+                <span className="font-bold text-stone-900">{satArchive.targetTotalScore || 1550}+</span>
               </div>
             </div>
 
@@ -474,39 +467,45 @@ export const AcademicsView: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="flex items-baseline gap-2 mt-3">
-                  <span className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
-                    {latestIelts.overallScore}
-                  </span>
-                  <span className="text-xs font-mono text-stone-500">/ 9.0</span>
-                  <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#EFE7DC] text-[#3B302A]">
-                    Target Achieved
-                  </span>
-                </div>
+                {latestIelts ? (
+                  <>
+                    <div className="flex items-baseline gap-2 mt-3">
+                      <span className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
+                        {latestIelts.overallScore}
+                      </span>
+                      <span className="text-xs font-mono text-stone-500">/ 9.0</span>
+                      <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#EFE7DC] text-[#3B302A]">
+                        {latestIelts.testType}
+                      </span>
+                    </div>
 
-                <div className="mt-2.5 text-[10px] font-mono text-stone-600 flex items-center justify-between">
-                  <span>L: <b className="text-stone-900">{latestIelts.listeningScore}</b></span>
-                  <span>R: <b className="text-stone-900">{latestIelts.readingScore}</b></span>
-                  <span>W: <b className="text-stone-900">{latestIelts.writingScore}</b></span>
-                  <span>S: <b className="text-stone-900">{latestIelts.speakingScore}</b></span>
-                </div>
+                    <div className="mt-2.5 text-[10px] font-mono text-stone-600 flex items-center justify-between">
+                      <span>L: <b className="text-stone-900">{latestIelts.listeningScore}</b></span>
+                      <span>R: <b className="text-stone-900">{latestIelts.readingScore}</b></span>
+                      <span>W: <b className="text-stone-900">{latestIelts.writingScore}</b></span>
+                      <span>S: <b className="text-stone-900">{latestIelts.speakingScore}</b></span>
+                    </div>
 
-                <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden mt-2">
-                  <div className="bg-[#59483D] h-full rounded-full" style={{ width: '88%' }} />
-                </div>
+                    <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden mt-2">
+                      <div className="bg-[#59483D] h-full rounded-full" style={{ width: '85%' }} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-4 text-center space-y-2">
+                    <span className="text-xs font-mono text-stone-400 block">No English test logged</span>
+                    <button
+                      onClick={() => setNewEnglishModal(true)}
+                      className="px-3 py-1.5 bg-[#3B302A] text-white rounded-lg text-xs font-mono font-bold cursor-pointer"
+                    >
+                      + Add English Score
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 border-t border-stone-100 text-[11px] font-mono text-stone-500 flex items-center justify-between">
-                <span>Test Date:</span>
-                <EditableDate 
-                  value={latestIelts.testDate}
-                  onSave={(newDate) => {
-                    if (englishTestRecords[0]) {
-                      updateEnglishTestRecord(englishTestRecords[0].id, { testDate: newDate });
-                    }
-                  }}
-                  displayMode="badge"
-                />
+                <span>Target Band:</span>
+                <span className="font-bold text-stone-900">7.5 - 8.0</span>
               </div>
             </div>
 
@@ -615,11 +614,11 @@ export const AcademicsView: React.FC = () => {
 
                 {/* Point Labels */}
                 <div className="relative z-10 w-full flex justify-between text-[11px] font-mono text-stone-600 pt-3">
-                  <span>SAT (1520)</span>
-                  <span>HSC (5.00)</span>
-                  <span>SSC (5.00)</span>
-                  <span>IELTS (8.0)</span>
-                  <span>BAdT (82)</span>
+                  <span>SAT ({latestSat ? latestSat.totalScore : (satArchive.targetTotalScore || 'Target')})</span>
+                  <span>HSC ({hscArchive.hscTargetGpa || '5.00'})</span>
+                  <span>SSC ({sscArchive.gpa || '5.00'})</span>
+                  <span>IELTS ({latestIelts ? latestIelts.overallScore : 'Target 7.5+'})</span>
+                  <span>BAdT ({bangladeshAdmissionEntries.length > 0 ? bangladeshAdmissionEntries[0].targetInstitution : 'Active'})</span>
                 </div>
               </div>
 
@@ -679,95 +678,42 @@ export const AcademicsView: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 text-xs font-mono">
-                  {/* Item 1 */}
-                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-stone-900">SAT Official Test</div>
-                      <div className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-                        <span>Score: 1520 |</span>
-                        <EditableDate 
-                          value="2025-08-24"
-                          onSave={() => {}}
-                          displayMode="compact"
-                        />
+                  {satArchive.records.map(rec => (
+                    <div key={rec.id} className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-stone-900">{rec.testType} ({rec.totalScore})</div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">RW: {rec.readingWritingScore} + M: {rec.mathScore} &bull; {rec.testDate}</div>
                       </div>
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[10px] font-bold">Logged</span>
                     </div>
-                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[10px] font-bold">
-                      Completed
-                    </span>
-                  </div>
+                  ))}
 
-                  {/* Item 2 */}
-                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-stone-900">SSC Board Result</div>
-                      <div className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-                        <span>GPA: 5.00 |</span>
-                        <EditableDate 
-                          value={sscArchive.resultPublishDate}
-                          onSave={(newDate) => updateSscArchive({ resultPublishDate: newDate })}
-                          displayMode="compact"
-                        />
+                  {englishTestRecords.map(rec => (
+                    <div key={rec.id} className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-stone-900">{rec.testType} (Band {rec.overallScore})</div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">L:{rec.listeningScore} R:{rec.readingScore} W:{rec.writingScore} S:{rec.speakingScore}</div>
                       </div>
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[10px] font-bold">Logged</span>
                     </div>
-                    <span className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded text-[10px] font-bold">
-                      Golden A+
-                    </span>
-                  </div>
+                  ))}
 
-                  {/* Item 3 */}
-                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-stone-900">HSC College Track</div>
-                      <div className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-                        <span>Target GPA: 5.00 |</span>
-                        <EditableDate 
-                          value={hscArchive.hscPassingYear}
-                          onSave={(newYear) => updateHscArchive({ hscPassingYear: newYear })}
-                          displayMode="compact"
-                        />
+                  {bangladeshAdmissionEntries.map(entry => (
+                    <div key={entry.id} className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-stone-900">{entry.targetInstitution}</div>
+                        <div className="text-[11px] text-stone-500 mt-0.5">{entry.resultsOrExpectations || 'Prep in progress'}</div>
                       </div>
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded text-[10px] font-bold">Active</span>
                     </div>
-                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[10px] font-bold">
-                      On Track
-                    </span>
-                  </div>
+                  ))}
 
-                  {/* Item 4 */}
-                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-stone-900">IELTS Official Test</div>
-                      <div className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-                        <span>Score: 8.0 |</span>
-                        <EditableDate 
-                          value={latestIelts.testDate}
-                          onSave={() => {}}
-                          displayMode="compact"
-                        />
-                      </div>
+                  {satArchive.records.length === 0 && englishTestRecords.length === 0 && bangladeshAdmissionEntries.length === 0 && (
+                    <div className="py-6 text-center text-xs text-stone-500 font-sans space-y-1">
+                      <p>No academic test records logged yet.</p>
+                      <p className="text-[11px] text-stone-400">Use the quick actions below to add your SAT, IELTS, or admission tests.</p>
                     </div>
-                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[10px] font-bold">
-                      Completed
-                    </span>
-                  </div>
-
-                  {/* Item 5 */}
-                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-stone-900">BUET Mock Screening</div>
-                      <div className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-                        <span>Result: 82/100 |</span>
-                        <EditableDate 
-                          value="2026-11-03"
-                          onSave={() => {}}
-                          displayMode="compact"
-                        />
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded text-[10px] font-bold">
-                      Noted
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -888,55 +834,71 @@ export const AcademicsView: React.FC = () => {
                 Test Records History ({satArchive.records.length})
               </h3>
 
-              {satArchive.records.map(record => (
-                <div key={record.id} className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="px-2.5 py-1 rounded bg-[#3B302A] text-white text-xs font-mono font-bold">
-                        {record.testType}
-                      </span>
-                      <span className="text-xl font-serif font-bold text-stone-900">
-                        {record.totalScore}
-                      </span>
-                      <span className="text-xs font-mono text-stone-500">
-                        (RW: {record.readingWritingScore} + Math: {record.mathScore})
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-xs font-mono text-stone-600 flex items-center gap-1">
-                        <span>Date:</span>
-                        <EditableDate 
-                          value={record.testDate}
-                          onSave={(newDate) => {
-                            const updated = satArchive.records.map(r => r.id === record.id ? { ...r, testDate: newDate } : r);
-                            updateSatArchive({ records: updated });
-                          }}
-                          displayMode="badge"
-                        />
-                      </div>
-                      <button
-                        onClick={() => deleteSatScoreRecord(record.id)}
-                        className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                        title="Delete record"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {record.preparationNotes && (
-                    <p className="text-xs text-stone-700 font-sans">
-                      <b className="font-mono text-stone-900">Notes:</b> {record.preparationNotes}
-                    </p>
-                  )}
-                  {record.weakAreas && (
-                    <p className="text-xs text-stone-700 font-sans">
-                      <b className="font-mono text-stone-900">Weak Areas:</b> {record.weakAreas}
-                    </p>
-                  )}
+              {satArchive.records.length === 0 ? (
+                <div className="p-8 text-center space-y-3 bg-stone-50 rounded-xl border border-stone-200">
+                  <Calculator className="w-8 h-8 text-stone-400 mx-auto" />
+                  <h4 className="text-sm font-bold font-serif text-stone-900">No SAT Test Records Yet</h4>
+                  <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
+                    Record your official Digital SAT or practice test scores to track section benchmarks and superscoring.
+                  </p>
+                  <button
+                    onClick={() => setNewSatModal(true)}
+                    className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold cursor-pointer"
+                  >
+                    + Add SAT Score Record
+                  </button>
                 </div>
-              ))}
+              ) : (
+                satArchive.records.map(record => (
+                  <div key={record.id} className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="px-2.5 py-1 rounded bg-[#3B302A] text-white text-xs font-mono font-bold">
+                          {record.testType}
+                        </span>
+                        <span className="text-xl font-serif font-bold text-stone-900">
+                          {record.totalScore}
+                        </span>
+                        <span className="text-xs font-mono text-stone-500">
+                          (RW: {record.readingWritingScore} + Math: {record.mathScore})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs font-mono text-stone-600 flex items-center gap-1">
+                          <span>Date:</span>
+                          <EditableDate 
+                            value={record.testDate}
+                            onSave={(newDate) => {
+                              const updated = satArchive.records.map(r => r.id === record.id ? { ...r, testDate: newDate } : r);
+                              updateSatArchive({ records: updated });
+                            }}
+                            displayMode="badge"
+                          />
+                        </div>
+                        <button
+                          onClick={() => deleteSatScoreRecord(record.id)}
+                          className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                          title="Delete record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {record.preparationNotes && (
+                      <p className="text-xs text-stone-700 font-sans">
+                        <b className="font-mono text-stone-900">Notes:</b> {record.preparationNotes}
+                      </p>
+                    )}
+                    {record.weakAreas && (
+                      <p className="text-xs text-stone-700 font-sans">
+                        <b className="font-mono text-stone-900">Weak Areas:</b> {record.weakAreas}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -1280,65 +1242,81 @@ export const AcademicsView: React.FC = () => {
 
             {/* Records */}
             <div className="space-y-3">
-              {englishTestRecords.map(rec => (
-                <div key={rec.id} className="p-5 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <span className="px-3 py-1 rounded bg-[#3B302A] text-white text-xs font-mono font-bold">
-                        {rec.testType}
-                      </span>
-                      <span className="text-2xl font-serif font-bold text-stone-900">
-                        {rec.overallScore}
-                      </span>
-                      <span className="text-xs font-mono text-stone-500">
-                        (Target: {rec.targetScore})
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-xs font-mono text-stone-600 flex items-center gap-1">
-                        <span>Test Date:</span>
-                        <EditableDate 
-                          value={rec.testDate}
-                          onSave={(newDate) => updateEnglishTestRecord(rec.id, { testDate: newDate })}
-                          displayMode="badge"
-                        />
-                      </div>
-                      <button
-                        onClick={() => deleteEnglishTestRecord(rec.id)}
-                        className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono pt-1">
-                    <div className="p-2.5 bg-white rounded border border-stone-200">
-                      <span className="text-stone-500 block">Listening</span>
-                      <span className="text-sm font-bold text-stone-900">{rec.listeningScore}</span>
-                    </div>
-                    <div className="p-2.5 bg-white rounded border border-stone-200">
-                      <span className="text-stone-500 block">Reading</span>
-                      <span className="text-sm font-bold text-stone-900">{rec.readingScore}</span>
-                    </div>
-                    <div className="p-2.5 bg-white rounded border border-stone-200">
-                      <span className="text-stone-500 block">Writing</span>
-                      <span className="text-sm font-bold text-stone-900">{rec.writingScore}</span>
-                    </div>
-                    <div className="p-2.5 bg-white rounded border border-stone-200">
-                      <span className="text-stone-500 block">Speaking</span>
-                      <span className="text-sm font-bold text-stone-900">{rec.speakingScore}</span>
-                    </div>
-                  </div>
-
-                  {rec.notes && (
-                    <p className="text-xs text-stone-600 font-sans pt-1">
-                      <b className="font-mono text-stone-900">Notes:</b> {rec.notes}
-                    </p>
-                  )}
+              {englishTestRecords.length === 0 ? (
+                <div className="p-8 text-center space-y-3 bg-stone-50 rounded-xl border border-stone-200">
+                  <Headphones className="w-8 h-8 text-stone-400 mx-auto" />
+                  <h4 className="text-sm font-bold font-serif text-stone-900">No English Test Records Yet</h4>
+                  <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
+                    Log your IELTS Academic, TOEFL iBT, or Duolingo English Test band scores and sub-scores.
+                  </p>
+                  <button
+                    onClick={() => setNewEnglishModal(true)}
+                    className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold cursor-pointer"
+                  >
+                    + Add English Test Result
+                  </button>
                 </div>
-              ))}
+              ) : (
+                englishTestRecords.map(rec => (
+                  <div key={rec.id} className="p-5 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 rounded bg-[#3B302A] text-white text-xs font-mono font-bold">
+                          {rec.testType}
+                        </span>
+                        <span className="text-2xl font-serif font-bold text-stone-900">
+                          {rec.overallScore}
+                        </span>
+                        <span className="text-xs font-mono text-stone-500">
+                          (Target: {rec.targetScore})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs font-mono text-stone-600 flex items-center gap-1">
+                          <span>Test Date:</span>
+                          <EditableDate 
+                            value={rec.testDate}
+                            onSave={(newDate) => updateEnglishTestRecord(rec.id, { testDate: newDate })}
+                            displayMode="badge"
+                          />
+                        </div>
+                        <button
+                          onClick={() => deleteEnglishTestRecord(rec.id)}
+                          className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono pt-1">
+                      <div className="p-2.5 bg-white rounded border border-stone-200">
+                        <span className="text-stone-500 block">Listening</span>
+                        <span className="text-sm font-bold text-stone-900">{rec.listeningScore}</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded border border-stone-200">
+                        <span className="text-stone-500 block">Reading</span>
+                        <span className="text-sm font-bold text-stone-900">{rec.readingScore}</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded border border-stone-200">
+                        <span className="text-stone-500 block">Writing</span>
+                        <span className="text-sm font-bold text-stone-900">{rec.writingScore}</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded border border-stone-200">
+                        <span className="text-stone-500 block">Speaking</span>
+                        <span className="text-sm font-bold text-stone-900">{rec.speakingScore}</span>
+                      </div>
+                    </div>
+
+                    {rec.notes && (
+                      <p className="text-xs text-stone-600 font-sans pt-1">
+                        <b className="font-mono text-stone-900">Notes:</b> {rec.notes}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -1370,58 +1348,74 @@ export const AcademicsView: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              {bangladeshAdmissionEntries.map(entry => (
-                <div key={entry.id} className="p-5 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-stone-200">
-                    <h3 className="text-base font-serif font-bold text-stone-900">
-                      {entry.targetInstitution}
-                    </h3>
-                    <div className="flex items-center gap-3">
-                      <div className="text-xs font-mono text-stone-600 flex items-center gap-1">
-                        <span>Updated:</span>
-                        <EditableDate 
-                          value={entry.updatedAt}
-                          onSave={(newDate) => updateBangladeshAdmissionEntry(entry.id, { updatedAt: newDate })}
-                          displayMode="badge"
-                        />
-                      </div>
-                      <button
-                        onClick={() => deleteBangladeshAdmissionEntry(entry.id)}
-                        className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
-                    <div>
-                      <span className="font-mono font-bold text-stone-900 block mb-1">
-                        Preparation Notes & Focus Areas:
-                      </span>
-                      <p className="text-stone-700 bg-white p-3 rounded border border-stone-200">
-                        {entry.preparationNotes || 'No notes added yet.'}
-                      </p>
-                    </div>
-
-                    <div>
-                      <span className="font-mono font-bold text-stone-900 block mb-1">
-                        Exam Experience & Mock Scores:
-                      </span>
-                      <p className="text-stone-700 bg-white p-3 rounded border border-stone-200">
-                        {entry.examExperience || 'Mock test logs pending.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {entry.importantDates && (
-                    <div className="text-xs font-mono text-stone-600 bg-amber-50 p-2.5 rounded border border-amber-200 flex items-center justify-between">
-                      <span className="font-bold text-amber-900">Important Dates:</span>
-                      <span>{entry.importantDates}</span>
-                    </div>
-                  )}
+              {bangladeshAdmissionEntries.length === 0 ? (
+                <div className="p-8 text-center space-y-3 bg-stone-50 rounded-xl border border-stone-200">
+                  <Award className="w-8 h-8 text-stone-400 mx-auto" />
+                  <h4 className="text-sm font-bold font-serif text-stone-900">No Admission Prep Entries Yet</h4>
+                  <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
+                    Track your engineering, medical, or university admission test preparation, syllabus coverage, and mock scores.
+                  </p>
+                  <button
+                    onClick={() => setNewBdModal(true)}
+                    className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold cursor-pointer"
+                  >
+                    + Add Institution Entry
+                  </button>
                 </div>
-              ))}
+              ) : (
+                bangladeshAdmissionEntries.map(entry => (
+                  <div key={entry.id} className="p-5 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-stone-200">
+                      <h3 className="text-base font-serif font-bold text-stone-900">
+                        {entry.targetInstitution}
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs font-mono text-stone-600 flex items-center gap-1">
+                          <span>Updated:</span>
+                          <EditableDate 
+                            value={entry.updatedAt}
+                            onSave={(newDate) => updateBangladeshAdmissionEntry(entry.id, { updatedAt: newDate })}
+                            displayMode="badge"
+                          />
+                        </div>
+                        <button
+                          onClick={() => deleteBangladeshAdmissionEntry(entry.id)}
+                          className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
+                      <div>
+                        <span className="font-mono font-bold text-stone-900 block mb-1">
+                          Preparation Notes & Focus Areas:
+                        </span>
+                        <p className="text-stone-700 bg-white p-3 rounded border border-stone-200">
+                          {entry.preparationNotes || 'No notes added yet.'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="font-mono font-bold text-stone-900 block mb-1">
+                          Exam Experience & Mock Scores:
+                        </span>
+                        <p className="text-stone-700 bg-white p-3 rounded border border-stone-200">
+                          {entry.examExperience || 'Mock test logs pending.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {entry.importantDates && (
+                      <div className="text-xs font-mono text-stone-600 bg-amber-50 p-2.5 rounded border border-amber-200 flex items-center justify-between">
+                        <span className="font-bold text-amber-900">Important Dates:</span>
+                        <span>{entry.importantDates}</span>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

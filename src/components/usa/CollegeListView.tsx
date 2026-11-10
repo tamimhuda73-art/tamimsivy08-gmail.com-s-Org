@@ -17,7 +17,8 @@ import {
   X,
   FileText,
   SlidersHorizontal,
-  ChevronLeft
+  ChevronLeft,
+  Building
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { 
@@ -40,7 +41,11 @@ export const CollegeListView: React.FC = () => {
     selectedUniversityId, 
     setSelectedUniversityId,
     moveUniversityCategory,
-    toggleFavoriteUniversity 
+    toggleFavoriteUniversity,
+    satArchive,
+    supplementalNotebooks,
+    researchVaultItems,
+    setActiveSubSection
   } = useUsaApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -346,6 +351,32 @@ export const CollegeListView: React.FC = () => {
         {/* Left Column: University Cards Grid (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {filteredUniversities.length === 0 && (
+              <div className="sm:col-span-2 p-8 bg-white border border-dashed border-stone-300 rounded-2xl text-center space-y-3">
+                <Building className="w-8 h-8 text-stone-300 mx-auto" />
+                <h4 className="text-sm font-serif font-bold text-stone-900">
+                  No {selectedCollegeTab.toUpperCase()} universities added yet
+                </h4>
+                <p className="text-xs font-sans text-stone-500 max-w-sm mx-auto">
+                  Pick from our Directory of verified colleges or add custom universities to build your {selectedCollegeTab} tier.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  <button
+                    onClick={() => setIsDiscoveryModalOpen(true)}
+                    className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold hover:bg-stone-900 cursor-pointer shadow-xs"
+                  >
+                    Browse Directory
+                  </button>
+                  <button
+                    onClick={() => setIsAddCustomModalOpen(true)}
+                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-mono font-bold cursor-pointer"
+                  >
+                    + Add Custom College
+                  </button>
+                </div>
+              </div>
+            )}
+
             {filteredUniversities.map(univ => {
               const isSelected = selectedUniv?.id === univ.id;
               const progressPct = univ.researchProgress || 70;
@@ -458,7 +489,35 @@ export const CollegeListView: React.FC = () => {
         </div>
 
         {/* Right Column: Selected University Dossier Panel matching image_839a375d.png (5 cols) */}
-        {selectedUniv && (
+        {!selectedUniv ? (
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-dashed border-[#EAE4DC] p-8 shadow-2xs text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-400 mx-auto">
+              <Building className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-serif font-bold text-stone-800">
+                No College Selected
+              </h3>
+              <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
+                Add universities from the Discovery Directory or add custom institutions to view detailed admission guidelines, financial aid policies, and test requirements.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                onClick={() => setIsDiscoveryModalOpen(true)}
+                className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold hover:bg-stone-900 cursor-pointer shadow-xs"
+              >
+                Browse Directory
+              </button>
+              <button
+                onClick={() => setIsAddCustomModalOpen(true)}
+                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-mono font-bold cursor-pointer"
+              >
+                + Add Custom
+              </button>
+            </div>
+          </div>
+        ) : (
           <div className="lg:col-span-5 bg-white rounded-2xl border border-[#EAE4DC] p-5 shadow-2xs space-y-4 sticky top-6">
             {/* Header */}
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-100">
@@ -518,6 +577,22 @@ export const CollegeListView: React.FC = () => {
               </span>
             </div>
 
+            {/* Correlation Alert: Test Policy Fit */}
+            {satArchive.records.length > 0 && (
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between text-xs font-mono">
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Your Latest SAT</span>
+                  <span className="font-bold text-stone-900">{satArchive.records[0].totalScore} / 1600</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">College Range / Policy</span>
+                  <span className="font-semibold text-[#3B302A]">
+                    {selectedUniv.satMiddle50 || selectedUniv.satPolicy || 'Test-Optional'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* About & Why */}
             <div className="space-y-3 text-xs font-sans">
               <div>
@@ -526,7 +601,7 @@ export const CollegeListView: React.FC = () => {
                 </h4>
                 <p className="text-stone-600 leading-relaxed">
                   {selectedUniv.admissionRequirementsSummary || 
-                   `${selectedUniv.name} is a premier world-renowned institution known for academic excellence, innovation, and vibrant undergraduate research.`}
+                   `${selectedUniv.name} is a premier institution known for academic excellence, innovation, and vibrant undergraduate research.`}
                 </p>
               </div>
 
@@ -560,18 +635,18 @@ export const CollegeListView: React.FC = () => {
                 <div>
                   <span className="text-stone-500 block">Website:</span>
                   <a 
-                    href={selectedUniv.officialWebsite} 
+                    href={selectedUniv.officialWebsite || '#'} 
                     target="_blank" 
                     rel="noreferrer"
                     className="font-semibold text-blue-700 hover:underline truncate block"
                   >
-                    {selectedUniv.officialWebsite.replace('https://', '')}
+                    {(selectedUniv.officialWebsite || 'Official site').replace('https://', '')}
                   </a>
                 </div>
                 <div>
                   <span className="text-stone-500 block">Location:</span>
                   <span className="font-semibold text-stone-900 truncate block">
-                    {selectedUniv.city}, {selectedUniv.state || selectedUniv.country}
+                    {selectedUniv.city || 'US'}, {selectedUniv.state || selectedUniv.country}
                   </span>
                 </div>
                 <div>
@@ -581,25 +656,54 @@ export const CollegeListView: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-stone-500 block">Acceptance Rate:</span>
+                  <span className="text-stone-500 block">Aid for Intl:</span>
                   <span className="font-semibold text-stone-900">
-                    {selectedUniv.admissionRate || '4.3%'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block">SAT Range:</span>
-                  <span className="font-semibold text-stone-900">
-                    {selectedUniv.satMiddle50 || '1470–1570'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block">Tuition (Annual):</span>
-                  <span className="font-semibold text-stone-900">
-                    {selectedUniv.tuitionAndFees || '$65,000+'}
+                    {selectedUniv.needBasedAidInternational || 'Need-Aware'}
                   </span>
                 </div>
               </div>
             </div>
+
+            {/* Section Correlation 1: Supplemental Essays Link */}
+            <div className="p-3 rounded-xl bg-[#FAF7F2] border border-[#EAE4DC] flex items-center justify-between text-xs font-mono">
+              <div>
+                <span className="font-bold text-stone-800 block">Supplemental Essays</span>
+                <span className="text-[10px] text-stone-500">
+                  {supplementalNotebooks[selectedUniv.id]?.questions?.length || 0} questions configured
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedUniversityId(selectedUniv.id);
+                  setActiveSubSection('essays');
+                }}
+                className="px-2.5 py-1 bg-[#3B302A] text-white rounded-lg text-[10px] font-bold hover:bg-stone-900 cursor-pointer"
+              >
+                Write Essays →
+              </button>
+            </div>
+
+            {/* Section Correlation 2: Linked Research Vault Items */}
+            {researchVaultItems.filter(r => r.relatedUniversityId === selectedUniv.id).length > 0 && (
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1.5 text-xs font-mono">
+                <span className="text-[10px] font-bold uppercase text-stone-500 block">
+                  Linked Research Vault Items ({researchVaultItems.filter(r => r.relatedUniversityId === selectedUniv.id).length})
+                </span>
+                <div className="space-y-1">
+                  {researchVaultItems.filter(r => r.relatedUniversityId === selectedUniv.id).map(item => (
+                    <div key={item.id} className="flex items-center justify-between text-[11px]">
+                      <span className="text-stone-800 truncate">• {item.title}</span>
+                      <button 
+                        onClick={() => setActiveSubSection('vault')}
+                        className="text-amber-800 hover:underline shrink-0 text-[10px]"
+                      >
+                        View
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* My Notes Box */}
             <div className="p-3 bg-white border border-stone-200 rounded-xl space-y-1.5 text-xs">
@@ -608,7 +712,7 @@ export const CollegeListView: React.FC = () => {
                   <FileText className="w-3.5 h-3.5 text-[#3B302A]" />
                   My Notes
                 </span>
-                <span className="text-[10px] text-stone-400">Click to edit</span>
+                <span className="text-[10px] text-stone-400">Autosaves</span>
               </div>
               <textarea
                 value={selectedUniv.whyISelectedThisUniversity || ''}
@@ -619,7 +723,7 @@ export const CollegeListView: React.FC = () => {
               />
             </div>
 
-            {/* Application Strategy Box with EDITABLE DEADLINE! */}
+            {/* Application Strategy Box with EDITABLE DEADLINE */}
             <div className="p-3.5 bg-amber-50/50 border border-amber-200/70 rounded-xl space-y-2 text-xs font-mono">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-stone-900 flex items-center gap-1.5">
@@ -632,7 +736,7 @@ export const CollegeListView: React.FC = () => {
               </div>
 
               <div className="text-[11px] text-stone-700 space-y-1">
-                <div>Rounds: ED: Possible | EA: Yes | RD: Yes</div>
+                <div>Intended Round: <strong>{selectedUniv.intendedRound || 'RD'}</strong></div>
                 <div className="flex items-center gap-2 pt-1 border-t border-amber-200/50">
                   <span className="font-bold text-stone-900">Deadline:</span>
                   <EditableDate 
@@ -642,28 +746,6 @@ export const CollegeListView: React.FC = () => {
                     label="Application Submission Deadline"
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Related Resources */}
-            <div className="space-y-2 text-xs font-mono pt-1">
-              <div className="flex items-center justify-between text-stone-500 text-[11px]">
-                <span className="uppercase font-bold">Related Resources</span>
-                <span className="hover:text-stone-900 cursor-pointer">View All →</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-200 text-stone-700 text-[11px] flex items-center gap-1.5">
-                  <span className="text-red-700 font-bold text-[10px]">PDF</span>
-                  <span>Guide.pdf</span>
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-200 text-stone-700 text-[11px] flex items-center gap-1.5">
-                  <span className="text-red-700 font-bold text-[10px]">PDF</span>
-                  <span>FAQ.pdf</span>
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-200 text-stone-700 text-[11px] flex items-center gap-1.5">
-                  <span className="text-blue-700 font-bold text-[10px]">DOC</span>
-                  <span>My Research.docx</span>
-                </span>
               </div>
             </div>
           </div>

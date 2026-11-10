@@ -122,7 +122,15 @@ export const SettingsView: React.FC = () => {
           )}
 
           <div className="p-3 bg-gray-50 rounded-xl text-[11px] font-mono text-gray-500">
-            Current calculation benchmark: <strong>{user.currentDate}</strong> (Monday, 09 November 2026).
+            Current calculation benchmark: <strong>{user.currentDate}</strong> ({(() => {
+              try {
+                const parts = (user.currentDate || "2026-11-10").split('-').map(Number);
+                const d = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                return d.toLocaleDateString('en-US', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+              } catch {
+                return "Tuesday, 10 November 2026";
+              }
+            })()}).
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Plus, 
@@ -31,7 +31,8 @@ import {
   FileCheck2,
   Paperclip,
   CheckSquare,
-  Square
+  Square,
+  Building
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { RecommendationNotebook } from '../../types/usaApp';
@@ -45,33 +46,26 @@ export const LorsView: React.FC = () => {
     deleteRecommendationNotebook,
     saveRecommendationDraft,
     restoreRecommendationDraft,
-    setActiveTab
+    setActiveSubSection,
+    universities
   } = useUsaApp();
 
-  const [selectedNotebookId, setSelectedNotebookId] = useState<string>('lor-1');
+  const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
 
-  // Teacher date state for editable dates
-  const [lorDates, setLorDates] = useState<Record<string, string>>({
-    'lor-1': 'Nov 8, 2026',
-    'lor-2': 'Nov 5, 2026',
-    'lor-3': 'Nov 3, 2026',
-    'lor-4': 'Oct 28, 2026',
-  });
-
-  // Attachment dates state
-  const [attachmentDates, setAttachmentDates] = useState<Record<string, string>>({
-    'att-1': 'Nov 5, 2026',
-    'att-2': 'Nov 3, 2026',
-    'att-3': 'Oct 28, 2026',
-  });
+  useEffect(() => {
+    if (recommendationNotebooks.length > 0 && (!selectedNotebookId || !recommendationNotebooks.some(n => n.id === selectedNotebookId))) {
+      setSelectedNotebookId(recommendationNotebooks[0].id);
+    } else if (recommendationNotebooks.length === 0) {
+      setSelectedNotebookId(null);
+    }
+  }, [recommendationNotebooks, selectedNotebookId]);
 
   // Guidelines checklist state
   const [guidelines, setGuidelines] = useState([
-    { id: 'g1', text: 'Highlight your unique qualities', checked: true },
-    { id: 'g2', text: 'Include specific examples', checked: true },
-    { id: 'g3', text: 'Show your impact and contributions', checked: true },
-    { id: 'g4', text: 'Keep a professional and sincere tone', checked: true },
-    { id: 'g5', text: 'Tailor it to the university', checked: true },
+    { id: 'g1', text: 'Share a brag sheet with specific projects & awards', checked: false },
+    { id: 'g2', text: 'Provide 2-3 specific classroom anecdotes to illustrate character', checked: false },
+    { id: 'g3', text: 'Ask referees at least 4-6 weeks before early deadlines', checked: false },
+    { id: 'g4', text: 'Confirm counselor and teacher Common App email invites', checked: false },
   ]);
 
   const toggleGuideline = (id: string) => {
@@ -83,21 +77,30 @@ export const LorsView: React.FC = () => {
     name: '',
     role: '',
     subject: '',
-    status: 'In Progress'
+    institution: '',
+    contextNotes: ''
   });
 
   // Active LOR
-  const activeNotebook = recommendationNotebooks.find(n => n.id === selectedNotebookId) || recommendationNotebooks[0];
+  const activeNotebook = recommendationNotebooks.find(n => n.id === selectedNotebookId);
   const [currentDraftText, setCurrentDraftText] = useState(activeNotebook?.currentDraft || '');
+
+  useEffect(() => {
+    if (activeNotebook) {
+      setCurrentDraftText(activeNotebook.currentDraft || '');
+    } else {
+      setCurrentDraftText('');
+    }
+  }, [activeNotebook]);
 
   const handleCreateLor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeacherForm.name.trim()) return;
     const newId = addRecommendationNotebook({
-      teacherName: newTeacherForm.name,
-      position: newTeacherForm.role || 'Teacher',
-      subject: newTeacherForm.subject || 'Academics',
-      institution: 'High School',
+      teacherName: newTeacherForm.name.trim(),
+      position: newTeacherForm.role.trim() || 'Teacher',
+      subject: newTeacherForm.subject.trim() || 'Academics',
+      institution: newTeacherForm.institution.trim() || 'High School',
       relationshipDuration: '2 years',
       classesTaught: '',
       academicStrengths: '',
@@ -106,23 +109,27 @@ export const LorsView: React.FC = () => {
       projectsAndAchievements: '',
       leadershipExamples: '',
       specificAnecdotes: '',
-      contextNotes: '',
+      contextNotes: newTeacherForm.contextNotes.trim(),
       attachedDocuments: [],
       currentDraft: ''
     });
-    setLorDates(prev => ({ ...prev, [newId]: 'Nov 9, 2026' }));
     setSelectedNotebookId(newId);
     setNewLorModal(false);
-    setNewTeacherForm({ name: '', role: '', subject: '', status: 'In Progress' });
+    setNewTeacherForm({ name: '', role: '', subject: '', institution: '', contextNotes: '' });
   };
 
   const exportAllLors = () => {
     let doc = `# LETTERS OF RECOMMENDATION DOSSIERS\nGenerated: ${new Date().toLocaleDateString()}\n\n`;
-    recommendationNotebooks.forEach(nb => {
-      doc += `## Referee: ${nb.teacherName} (${nb.position}, ${nb.subject})\n`;
-      doc += `Status: Updated ${lorDates[nb.id] || 'Recently'}\n\n`;
-      doc += `Draft:\n${nb.currentDraft || '(Draft empty)'}\n\n---\n\n`;
-    });
+    if (recommendationNotebooks.length === 0) {
+      doc += `No recommenders logged yet.\n`;
+    } else {
+      recommendationNotebooks.forEach(nb => {
+        doc += `## Recommender: ${nb.teacherName} (${nb.position}, ${nb.subject})\n`;
+        doc += `Institution: ${nb.institution || 'N/A'}\n`;
+        doc += `Anecdotes & Brag Sheet:\n${nb.specificAnecdotes || '(None added)'}\n\n`;
+        doc += `Draft Recommendation / Points:\n${nb.currentDraft || '(Empty draft)'}\n\n---\n\n`;
+      });
+    }
     const blob = new Blob([doc], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -140,23 +147,23 @@ export const LorsView: React.FC = () => {
         <div className="flex items-center gap-1.5 text-xs text-stone-500 font-sans mb-1">
           <span>&lt;</span>
           <button 
-            onClick={() => setActiveTab('usa-dashboard')}
+            onClick={() => setActiveSubSection('dashboard')}
             className="hover:text-stone-900 cursor-pointer font-medium"
           >
             USA Application
           </button>
           <span>&gt;</span>
-          <span className="text-stone-700 font-medium">LORs</span>
+          <span className="text-stone-700 font-medium">Letters of Recommendation (LORs)</span>
         </div>
         <h1 className="text-3xl font-extrabold text-stone-900 font-serif tracking-tight">
-          LORs
+          Letters of Recommendation
         </h1>
         <p className="text-sm text-stone-600 font-serif italic mt-0.5">
-          Strong recommendations. A stronger application.
+          Organize referees, prepare teacher brag sheets, and track recommendation submissions.
         </p>
       </div>
 
-      {/* Hero Banner with Stats (Matches image_9c701907.png) */}
+      {/* Hero Banner with Stats (Dynamic) */}
       <div className="bg-[#3B302A] text-white rounded-2xl p-6 sm:p-7 shadow-sm border border-[#29231E]">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4 max-w-xl">
@@ -165,7 +172,7 @@ export const LorsView: React.FC = () => {
             </div>
             <div>
               <p className="font-serif italic text-stone-200 text-sm sm:text-base leading-snug">
-                &ldquo;A great letter speaks not just of your achievements, but of your character, curiosity, and impact.&rdquo;
+                &ldquo;A great letter speaks not just of your grades, but of your character, intellectual vitality, and collaborative spirit.&rdquo;
               </p>
               <span className="text-[11px] font-mono tracking-widest text-[#D8C5AE] uppercase mt-1 block">
                 &mdash; COMEBACK
@@ -173,208 +180,131 @@ export const LorsView: React.FC = () => {
             </div>
           </div>
 
-          {/* 3 Metric Pills */}
+          {/* Metric Pills */}
           <div className="flex flex-wrap items-center gap-6 lg:gap-8 border-t lg:border-t-0 lg:border-l border-white/15 pt-4 lg:pt-0 lg:pl-8">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
                 <FileText className="w-5 h-5 text-[#D8C5AE]" />
               </div>
               <div>
-                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">5 / 6</span>
-                <span className="text-[11px] text-stone-300 font-sans">LORs Planned</span>
+                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">
+                  {recommendationNotebooks.length}
+                </span>
+                <span className="text-[11px] text-stone-300 font-sans">Total Referees</span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <UserCheck className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">2</span>
-                <span className="text-[11px] text-stone-300 font-sans">Completed</span>
+                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">
+                  {Math.min(3, recommendationNotebooks.length)} / 3
+                </span>
+                <span className="text-[11px] text-stone-300 font-sans">Common App Slots</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                <Clock className="w-5 h-5 text-amber-400" />
-              </div>
-              <div>
-                <span className="text-lg sm:text-xl font-bold font-mono tracking-tight block">4</span>
-                <span className="text-[11px] text-stone-300 font-sans">In Progress</span>
-              </div>
-            </div>
+            <button
+              onClick={() => setNewLorModal(true)}
+              className="px-4 py-2 bg-[#D8C5AE] hover:bg-white text-stone-900 font-mono text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-xs"
+            >
+              + Add Recommender
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Main Row: My LORs (Left) + LOR Writing Workspace (Right) */}
+      {/* Main Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column: My LORs List (4 cols) */}
-        <div className="lg:col-span-4 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3 flex flex-col justify-between">
-          <div>
+        {/* Left Column: Recommender Notebooks List (4 cols) */}
+        <div className="lg:col-span-4 space-y-4">
+          <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
               <div className="flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-[#3B302A]" />
+                <GraduationCap className="w-4 h-4 text-[#3B302A]" />
                 <h3 className="text-sm font-bold font-serif text-stone-900">
-                  My LORs
+                  Recommenders ({recommendationNotebooks.length})
                 </h3>
               </div>
               <button 
                 onClick={() => setNewLorModal(true)}
                 className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
               >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <span>+ Add</span>
               </button>
             </div>
 
-            <div className="space-y-2 mt-3">
-              {/* Teacher 1: Dr. Rahman */}
-              <div
-                onClick={() => setSelectedNotebookId('lor-1')}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedNotebookId === 'lor-1'
-                    ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                    : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-stone-200 border border-stone-300 flex items-center justify-center font-bold text-stone-700 text-xs shrink-0">
-                      DR
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Dr. Rahman</h4>
-                      <p className="text-[10px] font-sans text-stone-500">Mathematics &bull; University Teacher</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full inline-block">
-                      Completed
-                    </span>
-                    <button className="text-stone-400 hover:text-stone-700 ml-2">...</button>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-stone-100 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                  <span>Updated:</span>
-                  <EditableDate
-                    value={lorDates['lor-1']}
-                    onChange={(val) => setLorDates(prev => ({ ...prev, 'lor-1': val }))}
-                    className="text-stone-700 font-semibold"
-                  />
-                </div>
+            {recommendationNotebooks.length === 0 ? (
+              <div className="py-8 text-center space-y-2 border border-dashed border-stone-300 rounded-xl p-4">
+                <FileText className="w-8 h-8 text-stone-300 mx-auto" />
+                <h4 className="text-xs font-serif font-bold text-stone-800">No recommenders added</h4>
+                <p className="text-[11px] text-stone-500 font-sans">
+                  Add 2 academic subject teachers (e.g. Math, Physics, Humanities) and 1 school counselor.
+                </p>
+                <button
+                  onClick={() => setNewLorModal(true)}
+                  className="px-3.5 py-1.5 bg-[#3B302A] text-white rounded-lg text-xs font-mono font-bold hover:bg-stone-900 cursor-pointer"
+                >
+                  + Add Recommender
+                </button>
               </div>
+            ) : (
+              <div className="space-y-2 mt-3">
+                {recommendationNotebooks.map(nb => {
+                  const isSelected = selectedNotebookId === nb.id;
+                  const initials = nb.teacherName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'TR';
+                  return (
+                    <div
+                      key={nb.id}
+                      onClick={() => setSelectedNotebookId(nb.id)}
+                      className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
+                          : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-stone-200 border border-stone-300 flex items-center justify-center font-bold text-stone-700 text-xs shrink-0">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold font-serif text-stone-900 truncate">
+                              {nb.teacherName}
+                            </h4>
+                            <p className="text-[10px] font-sans text-stone-500 truncate">
+                              {nb.subject} &bull; {nb.position}
+                            </p>
+                          </div>
+                        </div>
 
-              {/* Teacher 2: Ms. Khan */}
-              <div
-                onClick={() => setSelectedNotebookId('lor-2')}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedNotebookId === 'lor-2'
-                    ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                    : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-stone-200 border border-stone-300 flex items-center justify-center font-bold text-stone-700 text-xs shrink-0">
-                      MK
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Ms. Khan</h4>
-                      <p className="text-[10px] font-sans text-stone-500">Physics &bull; School Teacher</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full inline-block">
-                      Completed
-                    </span>
-                    <button className="text-stone-400 hover:text-stone-700 ml-2">...</button>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-stone-100 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                  <span>Updated:</span>
-                  <EditableDate
-                    value={lorDates['lor-2']}
-                    onChange={(val) => setLorDates(prev => ({ ...prev, 'lor-2': val }))}
-                    className="text-stone-700 font-semibold"
-                  />
-                </div>
-              </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Remove ${nb.teacherName} from your LOR list?`)) {
+                              deleteRecommendationNotebook(nb.id);
+                            }
+                          }}
+                          className="text-stone-300 hover:text-rose-600 p-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-              {/* Teacher 3: Mr. Ahmed */}
-              <div
-                onClick={() => setSelectedNotebookId('lor-3')}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedNotebookId === 'lor-3'
-                    ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                    : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-stone-200 border border-stone-300 flex items-center justify-center font-bold text-stone-700 text-xs shrink-0">
-                      MA
+                      <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] font-mono text-stone-500">
+                        <span>Institution: {nb.institution || 'School'}</span>
+                        <span className="text-[#3B302A] font-bold">
+                          {nb.currentDraft?.trim() ? `${nb.currentDraft.trim().split(/\s+/).length} words` : 'No draft'}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Mr. Ahmed</h4>
-                      <p className="text-[10px] font-sans text-stone-500">Computer Science &bull; Mentor</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full inline-block">
-                      In Progress
-                    </span>
-                    <button className="text-stone-400 hover:text-stone-700 ml-2">...</button>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-stone-100 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                  <span>Updated:</span>
-                  <EditableDate
-                    value={lorDates['lor-3']}
-                    onChange={(val) => setLorDates(prev => ({ ...prev, 'lor-3': val }))}
-                    className="text-stone-700 font-semibold"
-                  />
-                </div>
+                  );
+                })}
               </div>
-
-              {/* Teacher 4: Prof. Islam */}
-              <div
-                onClick={() => setSelectedNotebookId('lor-4')}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedNotebookId === 'lor-4'
-                    ? 'bg-white border-[#3B302A] shadow-xs ring-1 ring-[#3B302A]'
-                    : 'bg-white/70 hover:bg-white border-[#EAE4DC]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-stone-200 border border-stone-300 flex items-center justify-center font-bold text-stone-700 text-xs shrink-0">
-                      PI
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Prof. Islam</h4>
-                      <p className="text-[10px] font-sans text-stone-500">Research &bull; Professor</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono font-bold text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full inline-block">
-                      Draft
-                    </span>
-                    <button className="text-stone-400 hover:text-stone-700 ml-2">...</button>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-stone-100 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                  <span>Updated:</span>
-                  <EditableDate
-                    value={lorDates['lor-4']}
-                    onChange={(val) => setLorDates(prev => ({ ...prev, 'lor-4': val }))}
-                    className="text-stone-700 font-semibold"
-                  />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Add New LOR Button */}
@@ -384,358 +314,222 @@ export const LorsView: React.FC = () => {
           >
             <Plus className="w-4 h-4" />
             <div className="text-left">
-              <span className="font-bold block">Add New LOR</span>
-              <span className="text-[10px] text-stone-500">Create a new recommendation notebook</span>
+              <span className="font-bold block">Add New Recommender</span>
+              <span className="text-[10px] text-stone-500">Create brag sheet &amp; draft studio</span>
             </div>
           </button>
         </div>
 
         {/* Right Column: LOR Writing Workspace (8 cols) */}
-        <div className="lg:col-span-8 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-6 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EAE4DC]">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#3B302A]" />
-              <h2 className="text-base font-bold font-serif text-stone-900">
-                LOR Writing Workspace
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-2">
+        <div className="lg:col-span-8 space-y-4">
+          {!activeNotebook ? (
+            <div className="bg-[#FAF8F5] border border-dashed border-[#EAE4DC] rounded-2xl p-12 text-center space-y-3">
+              <FileCheck2 className="w-12 h-12 text-stone-300 mx-auto" />
+              <h3 className="text-base font-serif font-bold text-stone-800">
+                No Recommender Selected
+              </h3>
+              <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                Select a recommender from the list or add a new teacher to draft brag sheets and organize submission notes.
+              </p>
               <button
-                onClick={() => {
-                  if (activeNotebook) {
-                    updateRecommendationNotebook(activeNotebook.id, { currentDraft: currentDraftText });
-                    saveRecommendationDraft(activeNotebook.id, 'Saved draft');
-                  }
-                }}
-                className="px-4 py-1.5 bg-[#3B302A] hover:bg-stone-900 text-white rounded-xl text-xs font-mono font-medium transition-colors cursor-pointer shadow-2xs"
+                onClick={() => setNewLorModal(true)}
+                className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold hover:bg-stone-900 cursor-pointer"
               >
-                Save
-              </button>
-              <button className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg cursor-pointer">
-                <Maximize2 className="w-4 h-4" />
+                + Add Recommender
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-6 shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EAE4DC]">
+                <div>
+                  <h2 className="text-base font-bold font-serif text-stone-900">
+                    {activeNotebook.teacherName} &mdash; Brag Sheet &amp; Draft
+                  </h2>
+                  <p className="text-xs text-stone-500 font-sans">
+                    {activeNotebook.position} &bull; {activeNotebook.subject} &bull; {activeNotebook.institution}
+                  </p>
+                </div>
 
-          {/* Editor Format Toolbar */}
-          <div className="flex flex-wrap items-center gap-1.5 p-2 bg-[#F4EFEA] rounded-xl border border-[#E2DBD1] text-stone-700">
-            <select className="px-2 py-1 bg-white border border-[#E2DBD1] rounded-lg text-xs font-serif text-stone-800 cursor-pointer">
-              <option>Normal</option>
-              <option>Formal Letterhead</option>
-            </select>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      updateRecommendationNotebook(activeNotebook.id, { currentDraft: currentDraftText });
+                      saveRecommendationDraft(activeNotebook.id, 'Saved snapshot');
+                    }}
+                    className="px-4 py-1.5 bg-[#3B302A] hover:bg-stone-900 text-white rounded-xl text-xs font-mono font-medium transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Save Draft
+                  </button>
+                </div>
+              </div>
 
-            <div className="h-4 w-[1px] bg-stone-300 mx-1" />
+              {/* Correlated College List selector */}
+              {universities.length > 0 && (
+                <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs font-mono flex items-center justify-between">
+                  <span className="text-stone-600 font-semibold flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-stone-500" />
+                    Target Colleges for this LOR:
+                  </span>
+                  <span className="text-[#3B302A] font-bold">
+                    All {universities.length} Colleges on List
+                  </span>
+                </div>
+              )}
 
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Bold className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Italic className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Underline className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Strikethrough className="w-3.5 h-3.5" /></button>
+              {/* Key Anecdotes & Accomplishments input */}
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5 text-xs">
+                <span className="font-bold text-stone-800 font-mono block">
+                  Specific Class Anecdotes &amp; Brag Points for Teacher:
+                </span>
+                <textarea
+                  rows={2}
+                  value={activeNotebook.specificAnecdotes || ''}
+                  onChange={(e) => updateRecommendationNotebook(activeNotebook.id, { specificAnecdotes: e.target.value })}
+                  placeholder="e.g. Led independent research on kinetic dynamics; stayed after class to mentor peers in calculus..."
+                  className="w-full p-2 bg-white border border-stone-200 rounded text-stone-800 font-sans focus:outline-none"
+                />
+              </div>
 
-            <div className="h-4 w-[1px] bg-stone-300 mx-1" />
+              {/* Lined Notebook Writing Canvas */}
+              <div className="space-y-1.5">
+                <span className="text-xs font-mono font-bold text-stone-700 block">
+                  Recommendation Letter Draft / Outline Points:
+                </span>
+                <div className="min-h-[240px] p-4 bg-white rounded-xl border border-stone-200">
+                  <textarea
+                    rows={10}
+                    value={currentDraftText}
+                    onChange={(e) => {
+                      setCurrentDraftText(e.target.value);
+                      updateRecommendationNotebook(activeNotebook.id, { currentDraft: e.target.value });
+                    }}
+                    className="w-full h-full bg-transparent font-serif text-sm text-stone-800 leading-relaxed border-none focus:outline-none resize-y"
+                    placeholder="Write key recommendation points or draft letter context here...&#10;Focus on intellectual humility, classroom engagement, and unique impact."
+                  />
+                </div>
+              </div>
 
-            <span className="text-xs font-serif font-bold text-stone-800 px-1 cursor-pointer">A ▾</span>
-            <button className="p-1.5 hover:bg-white rounded-lg text-amber-600 cursor-pointer"><Highlighter className="w-3.5 h-3.5" /></button>
-
-            <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><List className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><ListOrdered className="w-3.5 h-3.5" /></button>
-
-            <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Link className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><ImageIcon className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Table className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Quote className="w-3.5 h-3.5" /></button>
-
-            <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Undo2 className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><Redo2 className="w-3.5 h-3.5" /></button>
-            <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer"><MoreHorizontal className="w-3.5 h-3.5" /></button>
-          </div>
-
-          {/* Lined Notebook Writing Canvas */}
-          <div className="min-h-[260px] p-4 bg-white rounded-xl border border-stone-200 relative">
-            <textarea
-              rows={9}
-              value={currentDraftText}
-              onChange={(e) => setCurrentDraftText(e.target.value)}
-              className="w-full h-full bg-transparent font-serif text-sm text-stone-800 leading-relaxed border-none focus:outline-none resize-none"
-              placeholder="Write your recommendation draft here...&#10;Add examples, highlight key points, and make it personalized."
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-xs font-mono text-stone-500 pt-2 border-t border-[#EAE4DC]">
-            <span>
-              {currentDraftText.trim() ? currentDraftText.trim().split(/\s+/).length : 0} words &bull; {currentDraftText.length} characters
-            </span>
-            <span className="text-[11px] text-stone-400">Autosaved</span>
-          </div>
+              <div className="flex items-center justify-between text-xs font-mono text-stone-500 pt-2 border-t border-[#EAE4DC]">
+                <span>
+                  {currentDraftText.trim() ? currentDraftText.trim().split(/\s+/).length : 0} words &bull; {currentDraftText.length} characters
+                </span>
+                <span className="text-[11px] text-stone-400">Autosaves</span>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
 
-      {/* Bottom Grid: 3 Columns matching image_9c701907.png */}
+      {/* Bottom Grid: Guidelines & Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-        
-        {/* Card 1: LOR Guidelines & Tips (4 cols) */}
-        <div className="lg:col-span-4 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#3B302A]" />
-                <h3 className="text-sm font-bold font-serif text-stone-900">
-                  LOR Guidelines &amp; Tips
-                </h3>
-              </div>
-              <button 
-                onClick={() => alert('Guideline Details: Provide your teachers with a 1-page "Brag Sheet" including project titles, contest rankings, and why you value their subject.')}
-                className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>View Details</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 mt-3">
-              {guidelines.map(g => (
-                <div 
-                  key={g.id}
-                  onClick={() => toggleGuideline(g.id)}
-                  className="flex items-center gap-2.5 text-xs text-stone-700 font-sans cursor-pointer hover:text-stone-900 select-none"
-                >
-                  {g.checked ? (
-                    <CheckSquare className="w-4 h-4 text-emerald-700 shrink-0" />
-                  ) : (
-                    <Square className="w-4 h-4 text-stone-400 shrink-0" />
-                  )}
-                  <span className={g.checked ? 'text-stone-900 font-medium' : 'text-stone-600'}>
-                    {g.text}
-                  </span>
-                </div>
-              ))}
+        {/* Guidelines */}
+        <div className="lg:col-span-6 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#3B302A]" />
+              <h3 className="text-sm font-bold font-serif text-stone-900">
+                LOR Guidelines &amp; Strategy Checklist
+              </h3>
             </div>
           </div>
 
-          {/* Quill Illustration */}
-          <div className="pt-2 flex justify-end">
-            <div className="w-24 h-16 opacity-80">
-              <img 
-                src="/assets/aistudio/image_c5b776f4.png" 
-                alt="Quill pen and ink" 
-                className="w-full h-full object-contain"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
-            </div>
+          <div className="space-y-2.5 mt-3">
+            {guidelines.map(g => (
+              <div 
+                key={g.id}
+                onClick={() => toggleGuideline(g.id)}
+                className="flex items-center gap-2.5 text-xs text-stone-700 font-sans cursor-pointer hover:text-stone-900 select-none"
+              >
+                {g.checked ? (
+                  <CheckSquare className="w-4 h-4 text-emerald-700 shrink-0" />
+                ) : (
+                  <Square className="w-4 h-4 text-stone-400 shrink-0" />
+                )}
+                <span className={g.checked ? 'text-stone-900 font-medium' : 'text-stone-600'}>
+                  {g.text}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Card 2: Document Attachments (4 cols) */}
-        <div className="lg:col-span-4 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3 flex flex-col justify-between">
+        {/* Quick Actions */}
+        <div className="lg:col-span-6 bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
               <div className="flex items-center gap-2">
                 <Paperclip className="w-4 h-4 text-[#3B302A]" />
                 <h3 className="text-sm font-bold font-serif text-stone-900">
-                  Document Attachments
+                  Export &amp; Preparation
                 </h3>
               </div>
-              <button 
-                onClick={() => alert('Attachments include official certificates, extracurricular resume, and annotated transcripts for referees.')}
-                className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
             </div>
 
-            <div className="divide-y divide-[#EAE4DC] mt-2">
-              {/* Attachment 1 */}
-              <div className="py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
-                    PDF
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-serif text-stone-900">My Academic Resume.pdf</h4>
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                      <span>Added:</span>
-                      <EditableDate
-                        value={attachmentDates['att-1']}
-                        onChange={(val) => setAttachmentDates(prev => ({ ...prev, 'att-1': val }))}
-                        className="text-stone-700 font-semibold"
-                      />
-                      <span>&bull; 245 KB</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => alert('Downloading My Academic Resume.pdf')}
-                  className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Attachment 2 */}
-              <div className="py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
-                    PDF
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-serif text-stone-900">Awards &amp; Certificates.pdf</h4>
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                      <span>Added:</span>
-                      <EditableDate
-                        value={attachmentDates['att-2']}
-                        onChange={(val) => setAttachmentDates(prev => ({ ...prev, 'att-2': val }))}
-                        className="text-stone-700 font-semibold"
-                      />
-                      <span>&bull; 1.2 MB</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => alert('Downloading Awards & Certificates.pdf')}
-                  className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Attachment 3 */}
-              <div className="py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
-                    DOC
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-serif text-stone-900">LOR Context Notes.docx</h4>
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                      <span>Added:</span>
-                      <EditableDate
-                        value={attachmentDates['att-3']}
-                        onChange={(val) => setAttachmentDates(prev => ({ ...prev, 'att-3': val }))}
-                        className="text-stone-700 font-semibold"
-                      />
-                      <span>&bull; 89 KB</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => alert('Downloading LOR Context Notes.docx')}
-                  className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+            <p className="text-xs text-stone-600 font-sans mt-2">
+              Generate a formatted briefing document containing all referee notes and brag sheets to email to your recommending teachers.
+            </p>
           </div>
 
           <button
-            onClick={() => alert('Attachment upload dialog')}
-            className="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 rounded-xl text-xs font-mono text-stone-700 font-medium cursor-pointer"
+            onClick={exportAllLors}
+            className="w-full py-2.5 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium hover:bg-stone-900 cursor-pointer flex items-center justify-center gap-2"
           >
-            + Upload Document
+            <Download className="w-3.5 h-3.5" />
+            <span>Download Referees Dossier (.md)</span>
           </button>
         </div>
-
-        {/* Card 3: Quick Actions & Campus Quote Card (4 cols) */}
-        <div className="lg:col-span-4 space-y-4 flex flex-col justify-between">
-          
-          {/* Quick Actions */}
-          <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-2.5">
-            <div className="flex items-center gap-2 pb-2 border-b border-[#EAE4DC]">
-              <Sparkles className="w-4 h-4 text-[#3B302A]" />
-              <h3 className="text-sm font-bold font-serif text-stone-900">
-                Quick Actions
-              </h3>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => setNewLorModal(true)}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <Plus className="w-3.5 h-3.5 text-stone-600" />
-                <span>Add New LOR</span>
-              </button>
-
-              <button
-                onClick={() => alert('LOR Templates: Academic Excellence, Character & Humility, Peer Leadership, Independent Research.')}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <FileText className="w-3.5 h-3.5 text-stone-600" />
-                <span>View Templates</span>
-              </button>
-
-              <button
-                onClick={exportAllLors}
-                className="w-full py-2 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-              >
-                <Download className="w-3.5 h-3.5 text-stone-600" />
-                <span>Export All LORs</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Historic Campus Quote Card */}
-          <div className="bg-[#3B302A] text-white rounded-2xl p-5 shadow-xs border border-[#29231E] relative overflow-hidden flex flex-col justify-end min-h-[140px]">
-            <div className="relative z-10 space-y-2">
-              <span className="text-2xl font-serif text-[#D8C5AE] leading-none block">&ldquo;</span>
-              <p className="font-serif italic text-stone-200 text-sm leading-snug">
-                Good recommendations open doors to greater opportunities.
-              </p>
-              <span className="text-[10px] font-mono tracking-widest text-[#D8C5AE] uppercase block">
-                &mdash; COMEBACK
-              </span>
-            </div>
-          </div>
-
-        </div>
-
       </div>
 
       {/* CREATE LOR MODAL */}
       {newLorModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-xl font-bold font-serif text-stone-900">Add New LOR Referee</h3>
-            <form onSubmit={handleCreateLor} className="space-y-3">
+            <h3 className="text-xl font-bold font-serif text-stone-900">Add Recommender Notebook</h3>
+            <form onSubmit={handleCreateLor} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-mono text-stone-700 mb-1">Teacher / Referee Name *</label>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Teacher / Mentor Name *</label>
                 <input
                   type="text"
                   required
                   value={newTeacherForm.name}
-                  onChange={(e) => setNewTeacherForm({ ...newTeacherForm, name: e.target.value })}
-                  placeholder="e.g. Dr. Mahmudul Hasan"
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                  onChange={(e) => setNewTeacherForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g. Dr. Jane Smith"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-stone-700 mb-1">Subject / Department</label>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Subject / Discipline *</label>
                 <input
                   type="text"
+                  required
                   value={newTeacherForm.subject}
-                  onChange={(e) => setNewTeacherForm({ ...newTeacherForm, subject: e.target.value })}
-                  placeholder="e.g. Chemistry / English"
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                  onChange={(e) => setNewTeacherForm(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="e.g. Higher Mathematics / Physics / Counselor"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-stone-700 mb-1">Designation</label>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Position / Title</label>
                 <input
                   type="text"
                   value={newTeacherForm.role}
-                  onChange={(e) => setNewTeacherForm({ ...newTeacherForm, role: e.target.value })}
-                  placeholder="e.g. Head of Department"
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                  onChange={(e) => setNewTeacherForm(prev => ({ ...prev, role: e.target.value }))}
+                  placeholder="e.g. Senior Faculty / Lab Head"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Institution</label>
+                <input
+                  type="text"
+                  value={newTeacherForm.institution}
+                  onChange={(e) => setNewTeacherForm(prev => ({ ...prev, institution: e.target.value }))}
+                  placeholder="e.g. High School or Research Institute"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
                 />
               </div>
 
@@ -743,15 +537,15 @@ export const LorsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setNewLorModal(false)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900"
+                  className="px-4 py-2 text-stone-600 hover:text-stone-900 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl font-mono font-medium cursor-pointer"
                 >
-                  Create LOR Notebook
+                  Create Notebook
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Compass, 
   Calendar, 
@@ -12,7 +12,9 @@ import {
   FileText,
   Clock,
   Layers,
-  Edit2
+  Edit2,
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { EditableDate } from './EditableDate';
@@ -20,6 +22,12 @@ import { EditableDate } from './EditableDate';
 export const StrategyView: React.FC = () => {
   const { 
     universities, 
+    updateUniversity,
+    mainEssays,
+    sopDocuments,
+    recommendationNotebooks,
+    satArchive,
+    englishTestRecords,
     setActiveTab,
     setSelectedUniversityId 
   } = useUsaApp();
@@ -28,18 +36,60 @@ export const StrategyView: React.FC = () => {
 
   // Dates state for editable timeline dates
   const [timelineDates, setTimelineDates] = useState<Record<string, string>>({
-    'ea': 'Dec 1, 2026',
-    'rd': 'Jan 1, 2027',
-    'fa': 'Feb 1, 2027',
+    'ea': 'Nov 1, 2027',
+    'ed': 'Nov 1, 2027',
+    'rd': 'Jan 1, 2028',
+    'fa': 'Feb 1, 2028',
   });
 
-  // Strategy checklist
+  // Strategy checklist items
   const [checklist, setChecklist] = useState([
-    { id: 'sc-1', label: 'Finalize College List', checked: true },
-    { id: 'sc-2', label: 'Prepare Essays & SOP', checked: true },
-    { id: 'sc-3', label: 'Get Strong LORs', checked: true },
-    { id: 'sc-4', label: 'Submit Applications', checked: false },
+    { id: 'sc-1', label: 'Build Balanced College List (Reach, Target, Safety)', checked: false },
+    { id: 'sc-2', label: 'Draft Common App Personal Statement & SOP', checked: false },
+    { id: 'sc-3', label: 'Confirm Recommendation Teachers & LORs', checked: false },
+    { id: 'sc-4', label: 'Complete Standardized Testing (SAT / IELTS)', checked: false },
+    { id: 'sc-5', label: 'Prepare Financial Aid / CSS Profile Documents', checked: false }
   ]);
+
+  const activeUniversities = useMemo(() => {
+    return universities.filter(u => !u.isArchived);
+  }, [universities]);
+
+  // Compute dynamic readiness score based on real application progress across modules
+  const dynamicPlanPct = useMemo(() => {
+    let score = 0;
+    // 1. College List (25%)
+    if (activeUniversities.length >= 1) score += 15;
+    if (activeUniversities.length >= 4) score += 10;
+
+    // 2. Writing (25%)
+    if (mainEssays.length > 0 || sopDocuments.length > 0) score += 15;
+    if (mainEssays.some(e => e.currentContent.length > 150) || sopDocuments.some(s => s.currentDraft.length > 150)) score += 10;
+
+    // 3. Letters of Recommendation (20%)
+    if (recommendationNotebooks.length >= 1) score += 10;
+    if (recommendationNotebooks.length >= 2) score += 10;
+
+    // 4. Testing (15%)
+    if (satArchive.records.length > 0 || englishTestRecords.length > 0) score += 15;
+
+    // 5. Checklist (15%)
+    const checkedCount = checklist.filter(c => c.checked).length;
+    score += Math.round((checkedCount / checklist.length) * 15);
+
+    return Math.min(score, 100);
+  }, [activeUniversities, mainEssays, sopDocuments, recommendationNotebooks, satArchive, englishTestRecords, checklist]);
+
+  // Auto-sync checklist items based on real state
+  React.useEffect(() => {
+    setChecklist(prev => [
+      { ...prev[0], checked: activeUniversities.length >= 3 },
+      { ...prev[1], checked: mainEssays.length > 0 || sopDocuments.length > 0 },
+      { ...prev[2], checked: recommendationNotebooks.length >= 1 },
+      { ...prev[3], checked: satArchive.records.length > 0 || englishTestRecords.length > 0 },
+      { ...prev[4], checked: prev[4].checked }
+    ]);
+  }, [activeUniversities.length, mainEssays.length, sopDocuments.length, recommendationNotebooks.length, satArchive.records.length, englishTestRecords.length]);
 
   const toggleChecklistItem = (id: string) => {
     setChecklist(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
@@ -69,7 +119,7 @@ export const StrategyView: React.FC = () => {
         </p>
       </div>
 
-      {/* Tabs Row (Matches image_a549d58d.png) */}
+      {/* Tabs Row */}
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => setActiveStrategyTab('hub')}
@@ -108,18 +158,6 @@ export const StrategyView: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveStrategyTab('checklist')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
-            activeStrategyTab === 'checklist'
-              ? 'bg-[#3B302A] text-white shadow-xs'
-              : 'bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-700 border border-[#E2DBD1]'
-          }`}
-        >
-          <CheckSquare className="w-3.5 h-3.5" />
-          <span>Checklist</span>
-        </button>
-
-        <button
           onClick={() => setActiveStrategyTab('tips')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer ${
             activeStrategyTab === 'tips'
@@ -142,35 +180,38 @@ export const StrategyView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-[#3B302A]" />
                 <h3 className="text-sm font-bold font-serif text-stone-900">
-                  My Strategy Overview
+                  Strategy Readiness Meter
                 </h3>
               </div>
-              <button 
-                onClick={() => alert('Edit application strategy plan')}
-                className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>Edit Plan</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-xs font-mono text-stone-500">
+                Live Status
+              </span>
             </div>
 
-            <div className="flex items-center gap-6 mt-4">
-              {/* Circular Meter (75% Plan Complete) */}
+            <div className="flex flex-col sm:flex-row items-center gap-6 mt-4">
+              {/* Circular Meter */}
               <div className="flex flex-col items-center shrink-0">
                 <div className="relative w-28 h-28 flex items-center justify-center">
                   <svg className="w-28 h-28 -rotate-90" viewBox="0 0 36 36">
                     <circle cx="18" cy="18" r="14" fill="none" stroke="#EAE4DC" strokeWidth="3" />
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="#29231E" strokeWidth="3.5" strokeDasharray="88" strokeDashoffset="22" strokeLinecap="round" />
+                    <circle 
+                      cx="18" cy="18" r="14" fill="none" stroke="#29231E" strokeWidth="3.5" 
+                      strokeDasharray="88" 
+                      strokeDashoffset={88 - (dynamicPlanPct / 100) * 88} 
+                      strokeLinecap="round" 
+                    />
                   </svg>
                   <div className="text-center absolute">
-                    <span className="text-2xl font-extrabold font-mono text-stone-900 tracking-tight block">75%</span>
+                    <span className="text-2xl font-extrabold font-mono text-stone-900 tracking-tight block">
+                      {dynamicPlanPct}%
+                    </span>
                   </div>
                 </div>
                 <span className="text-xs font-mono text-stone-600 font-semibold mt-1">Plan Complete</span>
               </div>
 
               {/* Checklist items */}
-              <div className="space-y-2.5 flex-1">
+              <div className="space-y-2.5 flex-1 w-full">
                 {checklist.map(item => (
                   <div 
                     key={item.id}
@@ -200,89 +241,109 @@ export const StrategyView: React.FC = () => {
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-[#3B302A]" />
               <h3 className="text-sm font-bold font-serif text-stone-900">
-                My College List
+                My College List Strategy ({activeUniversities.length})
               </h3>
             </div>
             <button 
               onClick={() => setActiveTab('usa-colleges')}
               className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
             >
-              <span>View All</span>
+              <span>Manage Colleges</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <table className="w-full text-xs font-sans">
-            <thead>
-              <tr className="text-stone-500 font-mono text-[11px] border-b border-[#EAE4DC] text-left">
-                <th className="pb-2 font-normal">University</th>
-                <th className="pb-2 font-normal">Type</th>
-                <th className="pb-2 font-normal">Status</th>
-                <th className="pb-2 font-normal text-right">Priority</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#EAE4DC]">
-              {/* Harvard */}
-              <tr className="hover:bg-[#F4EFEA]/60 transition-colors">
-                <td className="py-2.5 flex items-center gap-2 font-serif font-bold text-stone-900">
-                  <div className="w-5 h-5 rounded bg-red-100 text-red-900 font-mono text-[10px] font-bold flex items-center justify-center">H</div>
-                  <span>Harvard University</span>
-                </td>
-                <td className="py-2.5 font-mono text-stone-700">Reach</td>
-                <td className="py-2.5">
-                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full font-semibold">
-                    On Track
-                  </span>
-                </td>
-                <td className="py-2.5 font-mono font-bold text-stone-900 text-right">1</td>
-              </tr>
-
-              {/* Stanford */}
-              <tr className="hover:bg-[#F4EFEA]/60 transition-colors">
-                <td className="py-2.5 flex items-center gap-2 font-serif font-bold text-stone-900">
-                  <div className="w-5 h-5 rounded bg-rose-100 text-rose-900 font-serif text-[10px] font-bold flex items-center justify-center">S</div>
-                  <span>Stanford University</span>
-                </td>
-                <td className="py-2.5 font-mono text-stone-700">Reach</td>
-                <td className="py-2.5">
-                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full font-semibold">
-                    On Track
-                  </span>
-                </td>
-                <td className="py-2.5 font-mono font-bold text-stone-900 text-right">2</td>
-              </tr>
-
-              {/* UC Berkeley */}
-              <tr className="hover:bg-[#F4EFEA]/60 transition-colors">
-                <td className="py-2.5 flex items-center gap-2 font-serif font-bold text-stone-900">
-                  <div className="w-5 h-5 rounded bg-blue-100 text-blue-900 font-serif text-[10px] font-bold flex items-center justify-center">Cal</div>
-                  <span>UC Berkeley</span>
-                </td>
-                <td className="py-2.5 font-mono text-stone-700">Target</td>
-                <td className="py-2.5">
-                  <span className="text-[10px] font-mono text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full font-semibold">
-                    In Progress
-                  </span>
-                </td>
-                <td className="py-2.5 font-mono font-bold text-stone-900 text-right">3</td>
-              </tr>
-
-              {/* UCLA */}
-              <tr className="hover:bg-[#F4EFEA]/60 transition-colors">
-                <td className="py-2.5 flex items-center gap-2 font-serif font-bold text-stone-900">
-                  <div className="w-5 h-5 rounded bg-sky-100 text-sky-900 font-mono text-[9px] font-bold flex items-center justify-center">UCLA</div>
-                  <span>UCLA</span>
-                </td>
-                <td className="py-2.5 font-mono text-stone-700">Target</td>
-                <td className="py-2.5">
-                  <span className="text-[10px] font-mono text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full font-semibold">
-                    Not Started
-                  </span>
-                </td>
-                <td className="py-2.5 font-mono font-bold text-stone-900 text-right">4</td>
-              </tr>
-            </tbody>
-          </table>
+          {activeUniversities.length === 0 ? (
+            <div className="py-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#E2DBD1] flex items-center justify-center mx-auto text-stone-400">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <h4 className="text-sm font-bold font-serif text-stone-900">
+                No Colleges in Your Strategy Yet
+              </h4>
+              <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
+                Add target, reach, or safety universities to populate your strategic application matrix.
+              </p>
+              <button
+                onClick={() => setActiveTab('usa-colleges')}
+                className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+              >
+                + Build College List
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-sans">
+                <thead>
+                  <tr className="text-stone-500 font-mono text-[11px] border-b border-[#EAE4DC] text-left">
+                    <th className="pb-2 font-normal">University</th>
+                    <th className="pb-2 font-normal">Tier</th>
+                    <th className="pb-2 font-normal">Target Round</th>
+                    <th className="pb-2 font-normal">Setting</th>
+                    <th className="pb-2 font-normal text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EAE4DC]">
+                  {activeUniversities.map(uni => (
+                    <tr key={uni.id} className="hover:bg-[#F4EFEA]/60 transition-colors">
+                      <td className="py-2.5 flex items-center gap-2 font-serif font-bold text-stone-900">
+                        <div className="w-6 h-6 rounded bg-[#3B302A] text-[#D8C5AE] font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {uni.name.charAt(0)}
+                        </div>
+                        <span className="truncate max-w-[160px]">{uni.name}</span>
+                      </td>
+                      <td className="py-2.5 font-mono text-stone-700 capitalize">
+                        <select
+                          value={uni.category}
+                          onChange={(e) => updateUniversity(uni.id, { category: e.target.value as any })}
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold border border-transparent cursor-pointer ${
+                            uni.category === 'reach' 
+                              ? 'bg-rose-100 text-rose-800' 
+                              : uni.category === 'target' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}
+                        >
+                          <option value="reach">Reach</option>
+                          <option value="target">Target</option>
+                          <option value="safety">Safety</option>
+                        </select>
+                      </td>
+                      <td className="py-2.5">
+                        <select
+                          value={uni.intendedRound || 'RD'}
+                          onChange={(e) => updateUniversity(uni.id, { intendedRound: e.target.value as any })}
+                          className="bg-white border border-[#E2DBD1] rounded px-1.5 py-0.5 text-[11px] font-mono cursor-pointer"
+                        >
+                          <option value="ED">ED</option>
+                          <option value="ED2">ED2</option>
+                          <option value="EA">EA</option>
+                          <option value="REA">REA</option>
+                          <option value="SCEA">SCEA</option>
+                          <option value="RD">RD</option>
+                          <option value="Rolling">Rolling</option>
+                        </select>
+                      </td>
+                      <td className="py-2.5 text-stone-600 font-mono text-[11px]">
+                        {uni.city ? `${uni.city}, ${uni.state}` : (uni.campusSetting || 'USA')}
+                      </td>
+                      <td className="py-2.5 text-right font-mono">
+                        <button
+                          onClick={() => {
+                            setSelectedUniversityId(uni.id);
+                            setActiveTab('usa-colleges');
+                          }}
+                          className="text-[#3B302A] hover:underline font-bold text-[11px]"
+                        >
+                          Dossier &rarr;
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
       </div>
@@ -296,20 +357,16 @@ export const StrategyView: React.FC = () => {
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#3B302A]" />
               <h3 className="text-sm font-bold font-serif text-stone-900">
-                Application Timeline
+                Application Timeline &amp; Deadlines
               </h3>
             </div>
-            <button 
-              onClick={() => setActiveStrategyTab('timeline')}
-              className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
-            >
-              <span>View Calendar</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+            <span className="text-[11px] font-mono text-stone-500">
+              Fall 2028 Cycle
+            </span>
           </div>
 
           <div className="space-y-4 pt-1 relative pl-4 before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-stone-300">
-            {/* Event 1: Early Action */}
+            {/* Event 1: Early Action / Early Decision */}
             <div className="relative">
               <div className="absolute -left-4 top-1 w-2 h-2 rounded-full bg-stone-700 ring-2 ring-[#FAF8F5]" />
               <div className="flex items-center gap-3">
@@ -319,10 +376,10 @@ export const StrategyView: React.FC = () => {
                   className="text-xs font-mono font-semibold text-stone-700"
                 />
                 <span className="text-[10px] font-mono font-bold bg-purple-100 text-purple-900 px-2 py-0.5 rounded">
-                  EA
+                  EA / ED
                 </span>
                 <span className="text-xs font-serif font-bold text-stone-900">
-                  Early Action Deadline
+                  Early Action &amp; Early Decision
                 </span>
               </div>
             </div>
@@ -358,7 +415,7 @@ export const StrategyView: React.FC = () => {
                   FA
                 </span>
                 <span className="text-xs font-serif font-bold text-stone-900">
-                  Financial Aid Deadline
+                  CSS Profile &amp; ISFAA Financial Aid
                 </span>
               </div>
             </div>
@@ -370,7 +427,7 @@ export const StrategyView: React.FC = () => {
           <div className="flex items-center gap-2 pb-2 border-b border-[#EAE4DC]">
             <Sparkles className="w-4 h-4 text-[#3B302A]" />
             <h3 className="text-sm font-bold font-serif text-stone-900">
-              Quick Actions
+              Quick Navigations
             </h3>
           </div>
 
@@ -379,32 +436,32 @@ export const StrategyView: React.FC = () => {
               onClick={() => setActiveTab('usa-colleges')}
               className="p-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] border border-[#E2DBD1] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
             >
-              <FileText className="w-4 h-4 text-stone-700 mb-1" />
-              <span className="text-xs font-serif font-bold text-stone-900">Plan Colleges</span>
+              <BookOpen className="w-4 h-4 text-stone-700 mb-1" />
+              <span className="text-xs font-serif font-bold text-stone-900">College List</span>
             </button>
 
             <button 
-              onClick={() => alert('Update strategy checklist')}
+              onClick={() => setActiveTab('usa-essays')}
+              className="p-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] border border-[#E2DBD1] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
+            >
+              <FileText className="w-4 h-4 text-stone-700 mb-1" />
+              <span className="text-xs font-serif font-bold text-stone-900">Main Essays</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('usa-lors')}
               className="p-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] border border-[#E2DBD1] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
             >
               <Edit2 className="w-4 h-4 text-stone-700 mb-1" />
-              <span className="text-xs font-serif font-bold text-stone-900">Update Checklist</span>
-            </button>
-
-            <button 
-              onClick={() => alert('Strategy Tips: Apply ED to your top choice if need-blind for internationals; stack EA options without restrictive rules.')}
-              className="p-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] border border-[#E2DBD1] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
-            >
-              <Sparkles className="w-4 h-4 text-stone-700 mb-1" />
-              <span className="text-xs font-serif font-bold text-stone-900">View Tips</span>
+              <span className="text-xs font-serif font-bold text-stone-900">LOR Notebook</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('usa-vault')}
               className="p-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] border border-[#E2DBD1] rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
             >
-              <BookOpen className="w-4 h-4 text-stone-700 mb-1" />
-              <span className="text-xs font-serif font-bold text-stone-900">Open Resources</span>
+              <Compass className="w-4 h-4 text-stone-700 mb-1" />
+              <span className="text-xs font-serif font-bold text-stone-900">Research Vault</span>
             </button>
           </div>
         </div>
@@ -414,7 +471,7 @@ export const StrategyView: React.FC = () => {
           <div className="relative z-10 space-y-2">
             <span className="text-2xl font-serif text-[#D8C5AE] leading-none block">&ldquo;</span>
             <p className="font-serif italic text-stone-200 text-sm leading-snug">
-              A well-planned application turns your efforts into opportunities.
+              A strategic application turns your authentic strengths into unstoppable momentum.
             </p>
             <span className="text-[10px] font-mono tracking-widest text-[#D8C5AE] uppercase block">
               &mdash; COMEBACK

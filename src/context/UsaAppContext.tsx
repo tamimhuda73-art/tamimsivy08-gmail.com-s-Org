@@ -174,10 +174,11 @@ interface UsaAppContextType {
   lastSavedText: string;
   exportUsaDataJSON: () => void;
   importUsaDataJSON: (jsonStr: string) => boolean;
+  resetAllToBlank: () => void;
   setActiveTab: (tab: string) => void;
 }
 
-const STORAGE_KEY_USA = 'comeback_usa_application_v1';
+const STORAGE_KEY_USA = 'comeback_usa_application_v2_clean';
 
 const UsaAppContext = createContext<UsaAppContextType | undefined>(undefined);
 
@@ -190,7 +191,7 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [targetDate, setTargetDate] = useState<string>('Nov 1, 2027');
   const [universities, setUniversities] = useState<UniversityProfile[]>(INITIAL_UNIVERSITIES);
   const [mainEssays, setMainEssays] = useState<MainEssay[]>(INITIAL_MAIN_ESSAYS);
-  const [activeMainEssayId, setActiveMainEssayId] = useState<string | null>('essay-main-1');
+  const [activeMainEssayId, setActiveMainEssayId] = useState<string | null>(null);
   const [storyBank, setStoryBank] = useState<StoryBankEntry[]>(INITIAL_STORY_BANK);
   const [supplementalNotebooks, setSupplementalNotebooks] = useState<Record<string, UniversitySupplementalNotebook>>({});
 
@@ -212,30 +213,31 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isAutosaved, setIsAutosaved] = useState(true);
   const [lastSavedText, setLastSavedText] = useState('Just now');
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount & clean up any obsolete v1 preloaded cache
   useEffect(() => {
     try {
+      localStorage.removeItem('comeback_usa_application_v1');
       const saved = localStorage.getItem(STORAGE_KEY_USA);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.settings) setSettings(parsed.settings);
         if (parsed.targetDate) setTargetDate(parsed.targetDate);
-        if (parsed.universities && parsed.universities.length > 0) setUniversities(parsed.universities);
-        if (parsed.mainEssays && parsed.mainEssays.length > 0) setMainEssays(parsed.mainEssays);
-        if (parsed.storyBank && parsed.storyBank.length > 0) setStoryBank(parsed.storyBank);
-        if (parsed.supplementalNotebooks && Object.keys(parsed.supplementalNotebooks).length > 0) setSupplementalNotebooks(parsed.supplementalNotebooks);
+        if (parsed.universities) setUniversities(parsed.universities);
+        if (parsed.mainEssays) setMainEssays(parsed.mainEssays);
+        if (parsed.storyBank) setStoryBank(parsed.storyBank);
+        if (parsed.supplementalNotebooks) setSupplementalNotebooks(parsed.supplementalNotebooks);
         if (parsed.satArchive) setSatArchive(parsed.satArchive);
         if (parsed.hscArchive) setHscArchive(parsed.hscArchive);
         if (parsed.sscArchive) setSscArchive(parsed.sscArchive);
-        if (parsed.englishTestRecords && parsed.englishTestRecords.length > 0) setEnglishTestRecords(parsed.englishTestRecords);
-        if (parsed.bangladeshAdmissionEntries && parsed.bangladeshAdmissionEntries.length > 0) setBangladeshAdmissionEntries(parsed.bangladeshAdmissionEntries);
-        if (parsed.recommendationNotebooks && parsed.recommendationNotebooks.length > 0) setRecommendationNotebooks(parsed.recommendationNotebooks);
-        if (parsed.sopDocuments && parsed.sopDocuments.length > 0) setSopDocuments(parsed.sopDocuments);
-        if (parsed.ecaActivities && parsed.ecaActivities.length > 0) setEcaActivities(parsed.ecaActivities);
-        if (parsed.passionProjectIdeas && parsed.passionProjectIdeas.length > 0) setPassionProjectIdeas(parsed.passionProjectIdeas);
-        if (parsed.activePassionProjects && parsed.activePassionProjects.length > 0) setActivePassionProjects(parsed.activePassionProjects);
-        if (parsed.strategyDecisions && parsed.strategyDecisions.length > 0) setStrategyDecisions(parsed.strategyDecisions);
-        if (parsed.researchVaultItems && parsed.researchVaultItems.length > 0) setResearchVaultItems(parsed.researchVaultItems);
+        if (parsed.englishTestRecords) setEnglishTestRecords(parsed.englishTestRecords);
+        if (parsed.bangladeshAdmissionEntries) setBangladeshAdmissionEntries(parsed.bangladeshAdmissionEntries);
+        if (parsed.recommendationNotebooks) setRecommendationNotebooks(parsed.recommendationNotebooks);
+        if (parsed.sopDocuments) setSopDocuments(parsed.sopDocuments);
+        if (parsed.ecaActivities) setEcaActivities(parsed.ecaActivities);
+        if (parsed.passionProjectIdeas) setPassionProjectIdeas(parsed.passionProjectIdeas);
+        if (parsed.activePassionProjects) setActivePassionProjects(parsed.activePassionProjects);
+        if (parsed.strategyDecisions) setStrategyDecisions(parsed.strategyDecisions);
+        if (parsed.researchVaultItems) setResearchVaultItems(parsed.researchVaultItems);
       }
     } catch (e) {
       console.warn('Failed to load USA Application data:', e);
@@ -1172,7 +1174,34 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
+  const resetAllToBlank = useCallback(() => {
+    setUniversities([]);
+    setSelectedUniversityId(null);
+    setMainEssays([]);
+    setActiveMainEssayId(null);
+    setStoryBank([]);
+    setSupplementalNotebooks({});
+    setSatArchive(INITIAL_SAT_ARCHIVE);
+    setHscArchive(INITIAL_HSC_ARCHIVE);
+    setSscArchive(INITIAL_SSC_ARCHIVE);
+    setEnglishTestRecords([]);
+    setBangladeshAdmissionEntries([]);
+    setRecommendationNotebooks([]);
+    setSopDocuments([]);
+    setEcaActivities([]);
+    setPassionProjectIdeas([]);
+    setActivePassionProjects([]);
+    setStrategyDecisions([]);
+    setResearchVaultItems([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY_USA);
+    } catch (e) {
+      console.warn(e);
+    }
+  }, []);
+
   const value = useMemo(() => ({
+    resetAllToBlank,
     activeSubSection,
     setActiveSubSection,
     selectedUniversityId,

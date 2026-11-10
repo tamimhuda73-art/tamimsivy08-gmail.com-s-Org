@@ -129,7 +129,7 @@ export const OverviewView: React.FC = () => {
   const calendarGrid = useMemo(() => {
     const year = selectedMonth.year;
     const month = selectedMonth.month; // 10 for Nov 2026
-    const todayDateStr = user?.currentDate || "2026-11-09";
+    const todayDateStr = user?.currentDate || "2026-11-10";
 
     const firstDay = new Date(year, month, 1);
     const dayOfWeek = firstDay.getDay(); // 0 = Sun
@@ -551,12 +551,13 @@ export const OverviewView: React.FC = () => {
                 {/* 5 Habit Rows */}
                 <div className="space-y-1.5">
                   {habits.slice(0, 5).map((h) => {
-                    const isDoneToday = h.history?.['2026-11-09'] || false;
+                    const todayDateStr = user?.currentDate || "2026-11-10";
+                    const isDoneToday = h.history?.[todayDateStr] || false;
                     return (
                       <div key={h.id} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5 min-w-0 pr-1">
                           <button
-                            onClick={() => toggleHabit(h.id, '2026-11-09')}
+                            onClick={() => toggleHabit(h.id, todayDateStr)}
                             className="cursor-pointer shrink-0"
                             aria-label={`Toggle habit ${h.name}`}
                           >
@@ -741,7 +742,7 @@ export const OverviewView: React.FC = () => {
                       <button 
                         onClick={() => {
                           setSelectedMonth({ year: 2026, month: 10 });
-                          setSelectedDate(user?.currentDate || "2026-11-09");
+                          setSelectedDate(user?.currentDate || "2026-11-10");
                         }}
                         className="text-[9px] font-mono font-semibold text-gray-600 hover:text-black px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 rounded transition-colors cursor-pointer"
                         title="Jump to current date"
@@ -821,8 +822,19 @@ export const OverviewView: React.FC = () => {
                 </div>
 
                 <div className="pt-2 text-[9px] font-mono text-gray-500 flex items-center justify-between">
-                  <span>Current Date: <strong>09 Nov 2026</strong></span>
-                  <span className="text-gray-400">Monday</span>
+                  <span>Current Date: <strong>{(() => {
+                    const parts = (user?.currentDate || "2026-11-10").split('-');
+                    if (parts.length === 3) {
+                      const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                      return `${parts[2]} ${mNames[parseInt(parts[1], 10) - 1] || ''} ${parts[0]}`;
+                    }
+                    return "10 Nov 2026";
+                  })()}</strong></span>
+                  <span className="text-gray-400">{(() => {
+                    const parts = (user?.currentDate || "2026-11-10").split('-').map(Number);
+                    const d = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                    return d.toLocaleDateString('en-US', { weekday: 'long' });
+                  })()}</span>
                 </div>
               </div>
             </div>

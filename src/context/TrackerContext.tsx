@@ -225,7 +225,7 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeDateModal, setActiveDateModal] = useState<ActiveDateModalData | null>(null);
 
   // Calendar Reference State
-  const [selectedDate, setSelectedDate] = useState<string>("2026-11-09");
+  const [selectedDate, setSelectedDate] = useState<string>("2026-11-10");
   const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number }>({
     year: 2026,
     month: 10 // November (0-indexed 10)
@@ -247,7 +247,12 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('comeback_tracker_data_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.user) setUser(parsed.user);
+        if (parsed.user) {
+          if (parsed.user.currentDate === '2026-11-09') {
+            parsed.user.currentDate = '2026-11-10';
+          }
+          setUser(parsed.user);
+        }
         if (parsed.sidebarCollapsed !== undefined) setSidebarCollapsed(parsed.sidebarCollapsed);
         
         // Missions & Milestones migration
@@ -972,9 +977,13 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const newHistory = { ...h.history, [date]: !currentVal };
       
       let streak = 0;
-      const checkDate = new Date(`${date}T00:00:00`);
+      const [y, m, d] = date.split('-').map(Number);
+      const checkDate = new Date(y, (m || 1) - 1, d || 1);
       while (true) {
-        const dateStr = checkDate.toISOString().split('T')[0];
+        const cYear = checkDate.getFullYear();
+        const cMonth = String(checkDate.getMonth() + 1).padStart(2, '0');
+        const cDay = String(checkDate.getDate()).padStart(2, '0');
+        const dateStr = `${cYear}-${cMonth}-${cDay}`;
         if (newHistory[dateStr]) {
           streak++;
           checkDate.setDate(checkDate.getDate() - 1);
@@ -1293,7 +1302,7 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSessionRecords(INITIAL_FOCUS_SESSIONS);
     setMonthlyAssignments(INITIAL_MONTHLY_ASSIGNMENTS);
     setRevisionRecords(generateInitialRevisionRecords());
-    setSelectedDate("2026-11-09");
+    setSelectedDate("2026-11-10");
     setSelectedMonth({ year: 2026, month: 10 });
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('comeback_tracker_data_v3');

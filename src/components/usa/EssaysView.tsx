@@ -35,7 +35,8 @@ import {
   Search,
   CheckSquare,
   Square,
-  Star
+  Star,
+  Building
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { 
@@ -73,7 +74,10 @@ export const EssaysView: React.FC = () => {
     saveSupplementalQuestionDraft,
     restoreSupplementalQuestionDraft,
     setSelectedUniversityId,
-    setActiveTab
+    setActiveTab,
+    setActiveSubSection,
+    ecaActivities,
+    activePassionProjects
   } = useUsaApp();
 
   const [activeSubTab, setActiveSubTab] = useState<EssaySubTab>('main');
@@ -85,42 +89,44 @@ export const EssaysView: React.FC = () => {
   const [customPromptText, setCustomPromptText] = useState('');
 
   const [compareDraftsModal, setCompareDraftsModal] = useState(false);
-  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const [newStoryModal, setNewStoryModal] = useState(false);
   const [editingStory, setEditingStory] = useState<StoryBankEntry | null>(null);
 
   // Active University for Supplemental Notebook view
   const [activeSuppUnivId, setActiveSuppUnivId] = useState<string | null>(null);
   const [newSuppQuestionModal, setNewSuppQuestionModal] = useState(false);
+  const [suppQuestionForm, setSuppQuestionForm] = useState({
+    questionText: '',
+    wordLimit: 250,
+    currentAnswer: '',
+    currentDraftStage: 'First Draft' as const
+  });
+
+  // Story Form State with correlation from ECAs/Projects
+  const [storyForm, setStoryForm] = useState({
+    storyTitle: '',
+    experience: '',
+    personalSignificance: '',
+    challenge: '',
+    learning: '',
+    personalGrowth: '',
+    possibleEssayConnection: '',
+    relatedEca: ''
+  });
 
   // Active Main Essay
   const activeMainEssay = mainEssays.find(e => e.id === activeMainEssayId) || mainEssays[0];
 
   // Checklist items state for interactive essay rubric
   const [checklist, setChecklist] = useState<{ id: string; label: string; checked: boolean }[]>([
-    { id: 'c1', label: 'Show personal struggle or challenge', checked: true },
-    { id: 'c2', label: 'Highlight growth and learning', checked: true },
-    { id: 'c3', label: 'Connect to future goals', checked: false }
+    { id: 'c1', label: 'Show personal struggle or challenge', checked: false },
+    { id: 'c2', label: 'Highlight genuine growth and learning', checked: false },
+    { id: 'c3', label: 'Connect to future goals and core values', checked: false }
   ]);
 
   const toggleChecklist = (id: string) => {
     setChecklist(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
   };
-
-  // Draft dates state for in-place editing
-  const [draftDates, setDraftDates] = useState<Record<string, string>>({
-    'draft-1': 'Nov 9, 2026 • 1:24 PM',
-    'draft-2': 'Nov 8, 2026 • 9:17 PM',
-    'draft-3': 'Nov 7, 2026 • 8:33 PM',
-    'draft-4': 'Nov 6, 2026 • 7:12 PM',
-  });
-
-  // Story edit dates state for in-place editing
-  const [storyDates, setStoryDates] = useState<Record<string, string>>({
-    'story-1': '2 days ago',
-    'story-2': '5 days ago',
-    'story-3': '1 week ago',
-  });
 
   const handleCreateMainEssay = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,14 +138,112 @@ export const EssaysView: React.FC = () => {
     setNewEssayModal(false);
   };
 
-  const exportAllEssays = () => {
-    let doc = `# ESSAYS ARCHIVE — USA FALL 2028 ADMISSION\nGenerated: ${new Date().toLocaleDateString()}\n\n`;
-    mainEssays.forEach((essay, idx) => {
-      doc += `## Main Essay ${idx + 1}: ${essay.title}\n`;
-      doc += `Prompt: ${essay.promptChoice}\n`;
-      doc += `Stage: ${essay.currentDraftStage} | Word Count: ${essay.wordCount}\n\n`;
-      doc += `${essay.currentContent.replace(/<[^>]*>/g, ' ').trim()}\n\n---\n\n`;
+  const handleQuickCreateFromPrompt = (promptId: string) => {
+    const promptObj = COMMON_APP_PROMPTS.find(p => p.id === promptId);
+    if (!promptObj) return;
+    createMainEssay(promptObj.label, promptObj.label, promptObj.prompt);
+  };
+
+  const handleSaveStory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storyForm.storyTitle.trim()) return;
+    if (editingStory) {
+      updateStoryBankEntry(editingStory.id, storyForm);
+    } else {
+      addStoryBankEntry(storyForm);
+    }
+    setNewStoryModal(false);
+    setEditingStory(null);
+    setStoryForm({
+      storyTitle: '',
+      experience: '',
+      personalSignificance: '',
+      challenge: '',
+      learning: '',
+      personalGrowth: '',
+      possibleEssayConnection: '',
+      relatedEca: ''
     });
+  };
+
+  const handleImportEcaToStory = (ecaId: string) => {
+    const eca = ecaActivities.find(a => a.id === ecaId);
+    if (!eca) return;
+    setStoryForm({
+      storyTitle: `${eca.activityName} Leadership Experience`,
+      experience: eca.responsibilities || eca.positionOrRole,
+      personalSignificance: eca.communityImpact || 'Significant commitment to community leadership.',
+      challenge: eca.personalReflections || '',
+      learning: eca.skillsDeveloped || '',
+      personalGrowth: eca.personalGrowth || '',
+      possibleEssayConnection: `Extracurricular leadership & impact in ${eca.category}`,
+      relatedEca: eca.activityName
+    });
+  };
+
+  const handleImportProjectToStory = (projId: string) => {
+    const proj = activePassionProjects.find(p => p.id === projId);
+    if (!proj) return;
+    setStoryForm({
+      storyTitle: `Building ${proj.projectTitle}`,
+      experience: proj.overview,
+      personalSignificance: proj.impact || 'Initiative in self-directed problem solving.',
+      challenge: proj.challengesAndSolutions || '',
+      learning: proj.finalReflection || '',
+      personalGrowth: proj.impact || '',
+      possibleEssayConnection: `Intellectual curiosity and initiative in building ${proj.projectTitle}`,
+      relatedEca: proj.projectTitle
+    });
+  };
+
+  const handleAddSuppQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSuppUnivId || !suppQuestionForm.questionText.trim()) return;
+    addSupplementalQuestion(activeSuppUnivId, {
+      applicationCycle: 'Fall 2028',
+      isPastQuestion: false,
+      questionText: suppQuestionForm.questionText.trim(),
+      wordLimit: Number(suppQuestionForm.wordLimit) || 250,
+      brainstormingNotes: '',
+      mainIdea: '',
+      outline: '',
+      currentAnswer: suppQuestionForm.currentAnswer,
+      currentDraftStage: suppQuestionForm.currentDraftStage
+    });
+    setNewSuppQuestionModal(false);
+    setSuppQuestionForm({
+      questionText: '',
+      wordLimit: 250,
+      currentAnswer: '',
+      currentDraftStage: 'First Draft'
+    });
+  };
+
+  const exportAllEssays = () => {
+    let doc = `# ESSAYS ARCHIVE — USA FALL ADMISSION\nGenerated: ${new Date().toLocaleDateString()}\n\n`;
+    if (mainEssays.length === 0) {
+      doc += `No main essays drafted yet.\n\n`;
+    } else {
+      mainEssays.forEach((essay, idx) => {
+        doc += `## Main Essay ${idx + 1}: ${essay.title}\n`;
+        doc += `Prompt: ${essay.promptChoice}\n`;
+        doc += `Stage: ${essay.currentDraftStage} | Word Count: ${essay.wordCount}\n\n`;
+        doc += `${essay.currentContent.replace(/<[^>]*>/g, ' ').trim()}\n\n---\n\n`;
+      });
+    }
+
+    doc += `## Supplemental Essays by University\n\n`;
+    universities.forEach(u => {
+      const nb = getSupplementalNotebook(u.id);
+      if (nb.questions.length > 0) {
+        doc += `### ${u.name}\n`;
+        nb.questions.forEach((q, qIdx) => {
+          doc += `Prompt #${qIdx + 1} (${q.wordLimit} words): ${q.questionText}\n`;
+          doc += `Answer:\n${q.currentAnswer || '(Not answered yet)'}\n\n`;
+        });
+      }
+    });
+
     const blob = new Blob([doc], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -149,6 +253,14 @@ export const EssaysView: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const totalSuppQuestions = Object.values(getSupplementalNotebook ? universities.reduce((acc, u) => {
+    const nb = getSupplementalNotebook(u.id);
+    return acc + (nb?.questions?.length || 0);
+  }, 0) : 0);
+
+  const totalDraftCount = mainEssays.reduce((acc, e) => acc + (e.drafts?.length || 0), 0);
+  const finalizedCount = mainEssays.filter(e => e.currentDraftStage === 'Final Draft').length;
+
   return (
     <div className="space-y-6">
       
@@ -157,17 +269,19 @@ export const EssaysView: React.FC = () => {
         <div className="flex items-center gap-1.5 text-xs text-stone-500 font-sans mb-1">
           <span>&lt;</span>
           <button 
-            onClick={() => setActiveTab('usa-dashboard')}
+            onClick={() => setActiveSubSection('dashboard')}
             className="hover:text-stone-900 cursor-pointer font-medium"
           >
             USA Application
           </button>
+          <span>&gt;</span>
+          <span className="text-stone-700 font-medium">Essays &amp; Writing Studio</span>
         </div>
         <h1 className="text-3xl font-extrabold text-stone-900 font-serif tracking-tight">
           Essays
         </h1>
         <p className="text-sm text-stone-600 font-serif italic mt-0.5">
-          Craft your story. Make it unforgettable.
+          Craft your personal narrative. Write. Revise. Polish.
         </p>
       </div>
 
@@ -182,7 +296,7 @@ export const EssaysView: React.FC = () => {
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>Main Essay</span>
+          <span>Main Essay ({mainEssays.length})</span>
         </button>
 
         <button
@@ -194,7 +308,7 @@ export const EssaysView: React.FC = () => {
           }`}
         >
           <BookOpen className="w-3.5 h-3.5" />
-          <span>Supplemental Essays</span>
+          <span>Supplemental Essays ({universities.length} Colleges)</span>
         </button>
 
         <button
@@ -206,145 +320,138 @@ export const EssaysView: React.FC = () => {
           }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Story Bank</span>
+          <span>Story Bank ({storyBank.length})</span>
         </button>
       </div>
 
-      {/* MAIN ESSAY WORKSPACE (Matches image_34c4daac.png exactly) */}
+      {/* MAIN ESSAY WORKSPACE */}
       {activeSubTab === 'main' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* Left / Center: Main Essay Editor & Lower Cards (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* Main Essay Card */}
-            <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-6 shadow-2xs space-y-4">
-              
-              {/* Header Toolbar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EAE4DC]">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#3B302A]" />
-                  <h2 className="text-base font-bold font-serif text-stone-900">
-                    Main Essay
+            {!activeMainEssay ? (
+              /* CLEAN EMPTY STATE: No Main Essay Yet */
+              <div className="bg-[#FAF8F5] border border-dashed border-[#EAE4DC] rounded-2xl p-8 shadow-2xs space-y-6 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-500 mx-auto">
+                  <FileText className="w-7 h-7" />
+                </div>
+                <div className="space-y-2 max-w-md mx-auto">
+                  <h2 className="text-xl font-bold font-serif text-stone-900">
+                    No Main Essay Drafted Yet
                   </h2>
+                  <p className="text-xs text-stone-600 font-sans leading-relaxed">
+                    The Common Application personal essay is a 650-word story that showcases your personal identity, resilience, intellectual curiosity, or growth to admissions committees.
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-stone-600">
-                    Word Count: <strong className="text-stone-900 font-bold">{activeMainEssay?.wordCount || 842}</strong>
+                <button
+                  onClick={() => setNewEssayModal(true)}
+                  className="px-6 py-2.5 bg-[#3B302A] hover:bg-stone-900 text-white rounded-xl text-xs font-mono font-bold transition-all shadow-xs cursor-pointer inline-flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Start Your Main Essay</span>
+                </button>
+
+                {/* Quick Start from Official Common App Prompts */}
+                <div className="pt-4 border-t border-stone-200 text-left space-y-3">
+                  <span className="text-[11px] font-mono font-bold text-stone-500 uppercase tracking-wider block text-center">
+                    Or select an official Common App Prompt to begin immediately:
                   </span>
-                  <span className="text-stone-300">|</span>
-                  <span className="text-xs font-mono text-stone-500">
-                    Last Saved: 2m ago
-                  </span>
-                  <button
-                    onClick={() => saveNewMainEssayDraft(activeMainEssay?.id || 'main-1', 'Saved snapshot')}
-                    className="px-3.5 py-1.5 bg-[#3B302A] hover:bg-stone-900 text-white rounded-xl text-xs font-mono font-medium transition-colors cursor-pointer shadow-2xs"
-                  >
-                    Save
-                  </button>
-                  <button className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg cursor-pointer">
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                  <button className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg cursor-pointer">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {COMMON_APP_PROMPTS.slice(0, 4).map(p => (
+                      <div
+                        key={p.id}
+                        onClick={() => handleQuickCreateFromPrompt(p.id)}
+                        className="p-3 rounded-xl bg-white border border-stone-200 hover:border-stone-400 hover:bg-stone-50 cursor-pointer transition-all space-y-1"
+                      >
+                        <span className="text-xs font-bold font-serif text-stone-900 block">
+                          {p.label}
+                        </span>
+                        <p className="text-[10px] text-stone-500 line-clamp-2 font-sans">
+                          {p.prompt}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
+            ) : (
+              /* ACTIVE ESSAY STUDIO */
+              <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-6 shadow-2xs space-y-4">
+                
+                {/* Header Toolbar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#EAE4DC]">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#3B302A]" />
+                      <h2 className="text-base font-bold font-serif text-stone-900">
+                        {activeMainEssay.title}
+                      </h2>
+                    </div>
+                    <span className="text-[11px] font-mono text-stone-500 block mt-0.5">
+                      {activeMainEssay.promptChoice}
+                    </span>
+                  </div>
 
-              {/* Formatting Toolbar */}
-              <div className="flex flex-wrap items-center gap-1.5 p-2 bg-[#F4EFEA] rounded-xl border border-[#E2DBD1] text-stone-700">
-                <select className="px-2 py-1 bg-white border border-[#E2DBD1] rounded-lg text-xs font-serif text-stone-800 cursor-pointer">
-                  <option>Heading 1</option>
-                  <option>Heading 2</option>
-                  <option>Normal text</option>
-                </select>
-
-                <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Bold">
-                  <Bold className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Italic">
-                  <Italic className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Underline">
-                  <Underline className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Strikethrough">
-                  <Strikethrough className="w-3.5 h-3.5" />
-                </button>
-
-                <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-                <button className="p-1.5 hover:bg-white rounded-lg text-amber-600 cursor-pointer" title="Highlight">
-                  <Highlighter className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs font-serif font-bold text-stone-800 px-1 cursor-pointer">A ▾</span>
-
-                <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Bullet List">
-                  <List className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Numbered List">
-                  <ListOrdered className="w-3.5 h-3.5" />
-                </button>
-
-                <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Link">
-                  <Link className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Image">
-                  <ImageIcon className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Table">
-                  <Table className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Quote">
-                  <Quote className="w-3.5 h-3.5" />
-                </button>
-
-                <div className="h-4 w-[1px] bg-stone-300 mx-1" />
-
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Undo">
-                  <Undo2 className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Redo">
-                  <Redo2 className="w-3.5 h-3.5" />
-                </button>
-                <button className="p-1.5 hover:bg-white rounded-lg text-stone-800 cursor-pointer" title="Search">
-                  <Search className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Essay Content Area */}
-              <div className="space-y-4 pt-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-900">
-                  {activeMainEssay?.title || 'My Journey: A Story of Growth'}
-                </h1>
-
-                {/* Callout Quote Box */}
-                <div className="p-4 bg-[#F2EDE4] rounded-xl border-l-4 border-[#3B302A] text-stone-800 font-serif italic text-sm sm:text-base leading-relaxed">
-                  &ldquo;The hardest battles often build the strongest versions of ourselves.&rdquo;
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-stone-600">
+                      Word Count: <strong className="text-stone-900 font-bold">{activeMainEssay.wordCount}</strong> / 650
+                    </span>
+                    <span className="text-stone-300">|</span>
+                    <button
+                      onClick={() => saveNewMainEssayDraft(activeMainEssay.id, 'Manual snapshot')}
+                      className="px-3.5 py-1.5 bg-[#3B302A] hover:bg-stone-900 text-white rounded-xl text-xs font-mono font-medium transition-colors cursor-pointer shadow-2xs"
+                    >
+                      Save Snapshot
+                    </button>
+                    <button 
+                      onClick={() => setNewEssayModal(true)}
+                      className="px-2.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-mono font-medium cursor-pointer"
+                      title="Create Another Main Essay Version"
+                    >
+                      + New
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm('Delete this essay draft?')) {
+                          deleteMainEssay(activeMainEssay.id);
+                        }
+                      }}
+                      className="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg cursor-pointer"
+                      title="Delete Essay"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Essay Prompt Callout */}
+                {activeMainEssay.customPromptText && (
+                  <div className="p-3.5 bg-[#F2EDE4] rounded-xl border-l-4 border-[#3B302A] text-stone-800 font-serif italic text-xs sm:text-sm leading-relaxed">
+                    &ldquo;{activeMainEssay.customPromptText}&rdquo;
+                  </div>
+                )}
 
                 {/* Editable Main Text */}
-                <textarea
-                  rows={6}
-                  value={activeMainEssay?.currentContent.replace(/<[^>]*>/g, ' ') || `Growing up, I always believed in the power of knowledge, curiosity, and hard work. From a young age, I have been fascinated by how ideas can change lives — whether through science, technology, or human connection. This curiosity has shaped my academic journey and continues to drive my dreams.`}
-                  onChange={(e) => {
-                    if (activeMainEssay) {
+                <div className="min-h-[280px] p-4 bg-white rounded-xl border border-stone-200">
+                  <textarea
+                    rows={12}
+                    value={activeMainEssay.currentContent}
+                    onChange={(e) => {
                       updateMainEssay(activeMainEssay.id, { currentContent: e.target.value });
-                    }
-                  }}
-                  className="w-full bg-transparent text-sm sm:text-base font-serif text-stone-800 leading-relaxed border-none focus:outline-none resize-y"
-                  placeholder="Draft your essay here..."
-                />
+                    }}
+                    className="w-full h-full bg-transparent text-sm font-serif text-stone-800 leading-relaxed border-none focus:outline-none resize-y"
+                    placeholder="Write your story here... Focus on specific sensory details, authentic vulnerability, and key insights."
+                  />
+                </div>
 
                 {/* Rubric Checklist */}
                 <div className="pt-2 border-t border-[#EAE4DC] space-y-2">
+                  <span className="text-[10px] font-mono font-bold text-stone-500 uppercase tracking-wider block">
+                    Self-Review Checklist
+                  </span>
                   {checklist.map(item => (
                     <div
                       key={item.id}
@@ -362,19 +469,18 @@ export const EssaysView: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Footer word count & info */}
-              <div className="flex items-center justify-between pt-3 border-t border-[#EAE4DC] text-xs font-mono text-stone-500">
-                <select className="bg-transparent border-none text-stone-700 cursor-pointer focus:outline-none">
-                  <option>Normal Text</option>
-                  <option>Large Text</option>
-                </select>
-                <span>{activeMainEssay?.wordCount || 842} words &bull; 4,723 characters</span>
+                {/* Footer word count */}
+                <div className="flex items-center justify-between pt-3 border-t border-[#EAE4DC] text-xs font-mono text-stone-500">
+                  <span className="text-stone-700 font-semibold">
+                    Stage: {activeMainEssay.currentDraftStage}
+                  </span>
+                  <span>{activeMainEssay.wordCount} words &bull; {activeMainEssay.characterCount} characters</span>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Two Side-by-Side Lower Cards: Story Bank & Draft History */}
+            {/* Lower Row: Story Bank & Draft History */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Left Lower: Story Bank */}
@@ -384,109 +490,45 @@ export const EssaysView: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-[#3B302A]" />
                       <h3 className="text-sm font-bold font-serif text-stone-900">
-                        Story Bank
+                        Story Bank ({storyBank.length})
                       </h3>
                     </div>
                     <button
                       onClick={() => setActiveSubTab('storybank')}
                       className="text-xs font-mono text-stone-600 hover:text-stone-900 font-semibold inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <span>View All</span>
+                      <span>Manage All</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="divide-y divide-[#EAE4DC] mt-2">
-                    {/* Story 1 */}
-                    <div className="py-3 flex items-start gap-3 hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer">
-                      <div className="w-16 h-12 rounded-lg bg-stone-300 overflow-hidden shrink-0">
-                        <img 
-                          src="/assets/aistudio/image_c5b776f4.png" 
-                          alt="Story thumbnail" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">
-                          The Night I Didn&apos;t Give Up
-                        </h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[10px] font-mono bg-stone-200 text-stone-800 px-1.5 py-0.5 rounded">Growth</span>
-                          <span className="text-[10px] font-mono bg-stone-200 text-stone-800 px-1.5 py-0.5 rounded">Leadership</span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                          <span>Last edited:</span>
-                          <EditableDate
-                            value={storyDates['story-1']}
-                            onChange={(val) => setStoryDates(prev => ({ ...prev, 'story-1': val }))}
-                            className="text-stone-700 font-semibold"
-                          />
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-stone-400 self-center" />
+                  {storyBank.length === 0 ? (
+                    <div className="py-6 text-center space-y-2">
+                      <Sparkles className="w-6 h-6 text-stone-300 mx-auto" />
+                      <p className="text-xs font-serif text-stone-600">No stories in bank yet</p>
+                      <button
+                        onClick={() => { setNewStoryModal(true); setEditingStory(null); }}
+                        className="px-3 py-1.5 bg-[#3B302A] text-white rounded-lg text-[10px] font-mono font-bold hover:bg-stone-900 cursor-pointer"
+                      >
+                        + Add Story
+                      </button>
                     </div>
-
-                    {/* Story 2 */}
-                    <div className="py-3 flex items-start gap-3 hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer">
-                      <div className="w-16 h-12 rounded-lg bg-stone-300 overflow-hidden shrink-0">
-                        <img 
-                          src="/assets/aistudio/image_73eb3f74.png" 
-                          alt="Story thumbnail" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">
-                          A Lesson from Failure
-                        </h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[10px] font-mono bg-stone-200 text-stone-800 px-1.5 py-0.5 rounded">Resilience</span>
-                          <span className="text-[10px] font-mono bg-stone-200 text-stone-800 px-1.5 py-0.5 rounded">Learning</span>
+                  ) : (
+                    <div className="divide-y divide-[#EAE4DC] mt-2">
+                      {storyBank.slice(0, 3).map(story => (
+                        <div key={story.id} className="py-2.5 flex items-start gap-3 hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-bold font-serif text-stone-900 truncate">
+                              {story.storyTitle}
+                            </h4>
+                            <p className="text-[11px] text-stone-600 font-sans line-clamp-1 mt-0.5">
+                              {story.experience}
+                            </p>
+                          </div>
                         </div>
-                        <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                          <span>Last edited:</span>
-                          <EditableDate
-                            value={storyDates['story-2']}
-                            onChange={(val) => setStoryDates(prev => ({ ...prev, 'story-2': val }))}
-                            className="text-stone-700 font-semibold"
-                          />
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-stone-400 self-center" />
+                      ))}
                     </div>
-
-                    {/* Story 3 */}
-                    <div className="py-3 flex items-start gap-3 hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer">
-                      <div className="w-16 h-12 rounded-lg bg-stone-300 overflow-hidden shrink-0">
-                        <img 
-                          src="/assets/aistudio/image_1bccb426.png" 
-                          alt="Story thumbnail" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold font-serif text-stone-900 line-clamp-1">
-                          Small Actions, Big Impact
-                        </h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[10px] font-mono bg-stone-200 text-stone-800 px-1.5 py-0.5 rounded">Community</span>
-                          <span className="text-[10px] font-mono bg-stone-200 text-stone-800 px-1.5 py-0.5 rounded">Empathy</span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-stone-500">
-                          <span>Last edited:</span>
-                          <EditableDate
-                            value={storyDates['story-3']}
-                            onChange={(val) => setStoryDates(prev => ({ ...prev, 'story-3': val }))}
-                            className="text-stone-700 font-semibold"
-                          />
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-stone-400 self-center" />
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -497,88 +539,38 @@ export const EssaysView: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <History className="w-4 h-4 text-[#3B302A]" />
                       <h3 className="text-sm font-bold font-serif text-stone-900">
-                        Draft History
+                        Draft History ({activeMainEssay?.drafts?.length || 0})
                       </h3>
                     </div>
-                    <button
-                      onClick={() => setCompareDraftsModal(true)}
-                      className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-[#E2DBD1] rounded-lg text-xs font-mono text-stone-800 font-medium cursor-pointer"
-                    >
-                      Compare Drafts
-                    </button>
                   </div>
 
-                  {/* Vertical Timeline */}
-                  <div className="mt-3 relative pl-5 space-y-4 before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-stone-300">
-                    
-                    {/* Draft 1: Final Draft */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone-800 ring-2 ring-[#FAF8F5]" />
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold font-serif text-stone-900">Final Draft</span>
-                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  {(!activeMainEssay || activeMainEssay.drafts.length === 0) ? (
+                    <div className="py-6 text-center space-y-2">
+                      <History className="w-6 h-6 text-stone-300 mx-auto" />
+                      <p className="text-xs font-serif text-stone-600">No draft snapshots saved yet</p>
+                      <p className="text-[10px] font-mono text-stone-400">Click &ldquo;Save Snapshot&rdquo; above to preserve versions</p>
+                    </div>
+                  ) : (
+                    <div className="mt-3 relative pl-5 space-y-3 before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1.5px] before:bg-stone-300">
+                      {activeMainEssay.drafts.map((d, i) => (
+                        <div key={d.id} className="relative">
+                          <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone-800 ring-2 ring-[#FAF8F5]" />
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold font-serif text-stone-900">{d.title}</span>
+                            <button
+                              onClick={() => restoreMainEssayDraft(activeMainEssay.id, d.versionNumber)}
+                              className="text-[10px] font-mono text-amber-800 hover:underline cursor-pointer"
+                            >
+                              Restore
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-stone-600 font-sans mt-0.5">
+                            {d.wordCount} words &bull; {d.notes || 'Snapshot'}
+                          </p>
                         </div>
-                        <EditableDate
-                          value={draftDates['draft-1']}
-                          onChange={(val) => setDraftDates(prev => ({ ...prev, 'draft-1': val }))}
-                          className="text-[10px] font-mono text-stone-500"
-                        />
-                      </div>
-                      <p className="text-[11px] text-stone-600 font-sans mt-0.5">
-                        Polished and ready to submit. &bull; 842 words
-                      </p>
+                      ))}
                     </div>
-
-                    {/* Draft 2: Improved Draft */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone-400 ring-2 ring-[#FAF8F5]" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold font-serif text-stone-900">Improved Draft</span>
-                        <EditableDate
-                          value={draftDates['draft-2']}
-                          onChange={(val) => setDraftDates(prev => ({ ...prev, 'draft-2': val }))}
-                          className="text-[10px] font-mono text-stone-500"
-                        />
-                      </div>
-                      <p className="text-[11px] text-stone-600 font-sans mt-0.5">
-                        Better flow and stronger conclusion. &bull; 821 words
-                      </p>
-                    </div>
-
-                    {/* Draft 3: Second Draft */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone-400 ring-2 ring-[#FAF8F5]" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold font-serif text-stone-900">Second Draft</span>
-                        <EditableDate
-                          value={draftDates['draft-3']}
-                          onChange={(val) => setDraftDates(prev => ({ ...prev, 'draft-3': val }))}
-                          className="text-[10px] font-mono text-stone-500"
-                        />
-                      </div>
-                      <p className="text-[11px] text-stone-600 font-sans mt-0.5">
-                        More personal and focused. &bull; 797 words
-                      </p>
-                    </div>
-
-                    {/* Draft 4: First Draft */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone-400 ring-2 ring-[#FAF8F5]" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold font-serif text-stone-900">First Draft</span>
-                        <EditableDate
-                          value={draftDates['draft-4']}
-                          onChange={(val) => setDraftDates(prev => ({ ...prev, 'draft-4': val }))}
-                          className="text-[10px] font-mono text-stone-500"
-                        />
-                      </div>
-                      <p className="text-[11px] text-stone-600 font-sans mt-0.5">
-                        Rough draft after brainstorming. &bull; 743 words
-                      </p>
-                    </div>
-
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -586,17 +578,19 @@ export const EssaysView: React.FC = () => {
 
           </div>
 
-          {/* Right Column: Supplemental Essays, Quick Actions, Essay Stats (4 cols) */}
+          {/* Right Column (4 cols): Supplemental Notebooks Link, Quick Actions, Stats */}
           <div className="lg:col-span-4 space-y-6">
             
-            {/* Supplemental Essays List Card */}
+            {/* Supplemental Essays by University (Correlated with College List) */}
             <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-[#EAE4DC]">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-[#3B302A]" />
+                <div>
                   <h3 className="text-sm font-bold font-serif text-stone-900">
-                    Supplemental Essays
+                    College Supplementals
                   </h3>
+                  <span className="text-[10px] font-mono text-stone-500">
+                    {universities.length} Universities on List
+                  </span>
                 </div>
                 <button
                   onClick={() => setActiveSubTab('supplemental')}
@@ -607,102 +601,47 @@ export const EssaysView: React.FC = () => {
                 </button>
               </div>
 
-              <div className="divide-y divide-[#EAE4DC]">
-                {/* Stanford */}
-                <div 
-                  onClick={() => { setActiveSubTab('supplemental'); setActiveSuppUnivId('univ-stanford'); }}
-                  className="py-3 flex items-center justify-between hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center font-serif font-black text-rose-800 text-sm shadow-2xs">
-                      S
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Stanford University</h4>
-                      <p className="text-[10px] font-mono text-stone-500">Stanford, CA, USA</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-semibold text-stone-700 bg-stone-200/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    3 drafts <ChevronRight className="w-3 h-3 text-stone-400" />
-                  </span>
+              {universities.length === 0 ? (
+                <div className="py-6 text-center space-y-2 border border-dashed border-stone-200 rounded-xl p-3">
+                  <Building className="w-6 h-6 text-stone-300 mx-auto" />
+                  <p className="text-xs font-serif font-semibold text-stone-700">No colleges added yet</p>
+                  <p className="text-[10px] font-sans text-stone-500">Add colleges to link prompts</p>
+                  <button
+                    onClick={() => setActiveSubSection('colleges')}
+                    className="px-3 py-1.5 bg-[#3B302A] text-white rounded-lg text-[10px] font-mono font-bold hover:bg-stone-900 cursor-pointer"
+                  >
+                    + Add College
+                  </button>
                 </div>
-
-                {/* Harvard */}
-                <div 
-                  onClick={() => { setActiveSubTab('supplemental'); setActiveSuppUnivId('univ-harvard'); }}
-                  className="py-3 flex items-center justify-between hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center font-serif font-black text-red-900 text-sm shadow-2xs">
-                      H
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Harvard University</h4>
-                      <p className="text-[10px] font-mono text-stone-500">Cambridge, MA, USA</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-semibold text-stone-700 bg-stone-200/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    2 drafts <ChevronRight className="w-3 h-3 text-stone-400" />
-                  </span>
+              ) : (
+                <div className="divide-y divide-[#EAE4DC]">
+                  {universities.slice(0, 4).map(u => {
+                    const nb = getSupplementalNotebook(u.id);
+                    return (
+                      <div 
+                        key={u.id}
+                        onClick={() => { setActiveSubTab('supplemental'); setActiveSuppUnivId(u.id); }}
+                        className="py-2.5 flex items-center justify-between hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-[#3B302A] text-white flex items-center justify-center font-serif font-bold text-xs shrink-0">
+                            {u.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold font-serif text-stone-900 truncate">
+                              {u.name}
+                            </h4>
+                            <p className="text-[10px] font-mono text-stone-500">
+                              {nb.questions.length} {nb.questions.length === 1 ? 'Prompt' : 'Prompts'}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      </div>
+                    );
+                  })}
                 </div>
-
-                {/* UC Berkeley */}
-                <div 
-                  onClick={() => { setActiveSubTab('supplemental'); setActiveSuppUnivId('univ-berkeley'); }}
-                  className="py-3 flex items-center justify-between hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center font-serif font-black text-blue-900 text-xs shadow-2xs">
-                      Cal
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">UC Berkeley</h4>
-                      <p className="text-[10px] font-mono text-stone-500">Berkeley, CA, USA</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-semibold text-stone-700 bg-stone-200/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    1 draft <ChevronRight className="w-3 h-3 text-stone-400" />
-                  </span>
-                </div>
-
-                {/* MIT */}
-                <div 
-                  onClick={() => { setActiveSubTab('supplemental'); setActiveSuppUnivId('univ-mit'); }}
-                  className="py-3 flex items-center justify-between hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-stone-100 border border-stone-300 flex items-center justify-center font-mono font-black text-stone-900 text-xs shadow-2xs">
-                      MIT
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">MIT</h4>
-                      <p className="text-[10px] font-mono text-stone-500">Cambridge, MA, USA</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-semibold text-stone-700 bg-stone-200/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    2 drafts <ChevronRight className="w-3 h-3 text-stone-400" />
-                  </span>
-                </div>
-
-                {/* Columbia */}
-                <div 
-                  onClick={() => { setActiveSubTab('supplemental'); setActiveSuppUnivId('univ-columbia'); }}
-                  className="py-3 flex items-center justify-between hover:bg-[#F4EFEA]/50 rounded-xl p-2 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center font-serif font-black text-sky-900 text-sm shadow-2xs">
-                      C
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold font-serif text-stone-900">Columbia University</h4>
-                      <p className="text-[10px] font-mono text-stone-500">New York, NY, USA</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-semibold text-stone-700 bg-stone-200/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                    1 draft <ChevronRight className="w-3 h-3 text-stone-400" />
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Quick Actions Card */}
@@ -720,7 +659,7 @@ export const EssaysView: React.FC = () => {
                   className="w-full py-2.5 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
                 >
                   <FileText className="w-3.5 h-3.5 text-stone-600" />
-                  <span>New Essay</span>
+                  <span>+ New Essay</span>
                 </button>
 
                 <button
@@ -728,23 +667,7 @@ export const EssaysView: React.FC = () => {
                   className="w-full py-2.5 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-stone-600" />
-                  <span>Add Story</span>
-                </button>
-
-                <button
-                  onClick={() => alert('Templates include: Personal Growth, Intellectual Passion, Challenge Overcome, and Community Leadership.')}
-                  className="w-full py-2.5 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-                >
-                  <Columns className="w-3.5 h-3.5 text-stone-600" />
-                  <span>Browse Templates</span>
-                </button>
-
-                <button
-                  onClick={() => alert('College Essay Guy Framework: Connect every anecdote to core values, show not just tell, and answer "So What?".')}
-                  className="w-full py-2.5 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
-                >
-                  <Bookmark className="w-3.5 h-3.5 text-stone-600" />
-                  <span>View Essay Guide</span>
+                  <span>+ Add Story Entry</span>
                 </button>
 
                 <button
@@ -752,12 +675,12 @@ export const EssaysView: React.FC = () => {
                   className="w-full py-2.5 px-3 bg-[#F4EFEA] hover:bg-[#EAE4DC] text-stone-800 rounded-xl text-xs font-mono font-semibold flex items-center gap-2 transition-colors cursor-pointer border border-[#E2DBD1]"
                 >
                   <Download className="w-3.5 h-3.5 text-stone-600" />
-                  <span>Export Essays</span>
+                  <span>Export All Essays</span>
                 </button>
               </div>
             </div>
 
-            {/* Essay Stats Card */}
+            {/* Essay Stats Card (Dynamic) */}
             <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 shadow-2xs space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-[#EAE4DC]">
                 <FileText className="w-4 h-4 text-[#3B302A]" />
@@ -768,16 +691,16 @@ export const EssaysView: React.FC = () => {
 
               <div className="space-y-2 text-xs font-mono">
                 <div className="flex items-center justify-between text-stone-700">
-                  <span>Total Essays</span>
-                  <strong className="text-stone-900 text-sm font-bold">12</strong>
+                  <span>Main Essays</span>
+                  <strong className="text-stone-900 text-sm font-bold">{mainEssays.length}</strong>
                 </div>
                 <div className="flex items-center justify-between text-stone-700">
-                  <span>Drafts</span>
-                  <strong className="text-stone-900 text-sm font-bold">28</strong>
+                  <span>Saved Draft Versions</span>
+                  <strong className="text-stone-900 text-sm font-bold">{totalDraftCount}</strong>
                 </div>
                 <div className="flex items-center justify-between text-stone-700">
-                  <span>Finalized</span>
-                  <strong className="text-emerald-800 text-sm font-bold">6</strong>
+                  <span>Story Bank Ideas</span>
+                  <strong className="text-stone-900 text-sm font-bold">{storyBank.length}</strong>
                 </div>
               </div>
             </div>
@@ -787,49 +710,69 @@ export const EssaysView: React.FC = () => {
         </div>
       )}
 
-      {/* SUPPLEMENTAL ESSAYS SUB-TAB */}
+      {/* SUPPLEMENTAL ESSAYS SUB-TAB (Correlated with College List) */}
       {activeSubTab === 'supplemental' && (
         <div className="space-y-4">
           {!activeSuppUnivId ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {universities.map(u => {
-                const nb = getSupplementalNotebook(u.id);
-                return (
-                  <div
-                    key={u.id}
-                    onClick={() => setActiveSuppUnivId(u.id)}
-                    className="bg-[#FAF8F5] border border-[#EAE4DC] hover:border-stone-400 rounded-2xl p-5 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between"
+            universities.length === 0 ? (
+              <div className="p-12 bg-[#FAF8F5] border border-dashed border-[#EAE4DC] rounded-2xl text-center space-y-3">
+                <Building className="w-10 h-10 text-stone-300 mx-auto" />
+                <h3 className="text-base font-serif font-bold text-stone-800">
+                  No Colleges in Your List Yet
+                </h3>
+                <p className="text-xs text-stone-500 max-w-md mx-auto">
+                  Supplemental essay questions are specific to each university. Add universities to your College List first to write and organize their required prompts.
+                </p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => setActiveSubSection('colleges')}
+                    className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold hover:bg-stone-900 cursor-pointer"
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded ${
-                          u.category === 'reach' ? 'bg-amber-100 text-amber-900' :
-                          u.category === 'target' ? 'bg-stone-200 text-stone-900' :
-                          'bg-emerald-100 text-emerald-900'
-                        }`}>
-                          {u.category}
-                        </span>
-                        <span className="text-[11px] font-mono text-stone-500 font-bold">
-                          {nb.questions.length} {nb.questions.length === 1 ? 'Prompt' : 'Prompts'}
-                        </span>
+                    Go to College List →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {universities.map(u => {
+                  const nb = getSupplementalNotebook(u.id);
+                  return (
+                    <div
+                      key={u.id}
+                      onClick={() => setActiveSuppUnivId(u.id)}
+                      className="bg-[#FAF8F5] border border-[#EAE4DC] hover:border-stone-400 rounded-2xl p-5 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded ${
+                            u.category === 'reach' ? 'bg-amber-100 text-amber-900' :
+                            u.category === 'target' ? 'bg-stone-200 text-stone-900' :
+                            'bg-emerald-100 text-emerald-900'
+                          }`}>
+                            {u.category}
+                          </span>
+                          <span className="text-[11px] font-mono text-stone-500 font-bold">
+                            {nb.questions.length} {nb.questions.length === 1 ? 'Prompt' : 'Prompts'}
+                          </span>
+                        </div>
+
+                        <h3 className="text-base font-bold font-serif text-stone-900 mt-2">
+                          {u.name}
+                        </h3>
+                        <p className="text-xs text-stone-500 font-sans mt-0.5">
+                          {u.city}, {u.state ? `${u.state}, ` : ''}{u.country}
+                        </p>
                       </div>
 
-                      <h3 className="text-base font-bold font-serif text-stone-900 mt-2">
-                        {u.name}
-                      </h3>
-                      <p className="text-xs text-stone-500 font-sans mt-0.5">
-                        {u.city}, {u.state ? `${u.state}, ` : ''}{u.country}
-                      </p>
+                      <div className="pt-4 mt-3 border-t border-stone-200 flex items-center justify-between text-xs font-mono font-semibold text-stone-800">
+                        <span>Open Prompts ({nb.questions.length})</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
                     </div>
-
-                    <div className="pt-4 mt-3 border-t border-stone-200 flex items-center justify-between text-xs font-mono font-semibold text-stone-800">
-                      <span>Open Supplementals</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )
           ) : (
             (() => {
               const currentUniv = universities.find(u => u.id === activeSuppUnivId);
@@ -847,9 +790,9 @@ export const EssaysView: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setNewSuppQuestionModal(true)}
-                      className="px-3.5 py-1.5 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+                      className="px-3.5 py-1.5 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium cursor-pointer"
                     >
-                      + Add Prompt
+                      + Add Prompt Question
                     </button>
                   </div>
 
@@ -857,22 +800,41 @@ export const EssaysView: React.FC = () => {
                     <h2 className="text-xl font-bold font-serif text-stone-900">
                       {currentUniv.name} &mdash; Supplemental Notebook
                     </h2>
-                    {suppNotebook.questions.map((q, idx) => (
-                      <div key={q.id} className="p-4 bg-white rounded-xl border border-stone-200 space-y-2">
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="font-bold text-stone-900">Prompt #{idx + 1} ({q.wordLimit} words)</span>
-                          <span className="text-stone-500">{q.currentDraftStage}</span>
-                        </div>
-                        <p className="text-sm font-serif italic text-stone-800">&ldquo;{q.questionText}&rdquo;</p>
-                        <textarea
-                          rows={3}
-                          value={q.currentAnswer}
-                          onChange={(e) => updateSupplementalQuestion(currentUniv.id, q.id, { currentAnswer: e.target.value })}
-                          placeholder="Draft your supplemental answer here..."
-                          className="w-full text-xs font-serif p-2 bg-[#FAF8F5] border border-stone-200 rounded-lg"
-                        />
+
+                    {suppNotebook.questions.length === 0 ? (
+                      <div className="py-8 text-center space-y-2 border border-dashed border-stone-300 rounded-xl">
+                        <FileText className="w-8 h-8 text-stone-300 mx-auto" />
+                        <p className="text-xs font-serif font-semibold text-stone-700">No prompt questions added yet for {currentUniv.name}</p>
+                        <button
+                          onClick={() => setNewSuppQuestionModal(true)}
+                          className="px-4 py-1.5 bg-[#3B302A] text-white rounded-lg text-xs font-mono cursor-pointer"
+                        >
+                          + Add Prompt
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      suppNotebook.questions.map((q, idx) => (
+                        <div key={q.id} className="p-4 bg-white rounded-xl border border-stone-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="font-bold text-stone-900">Prompt #{idx + 1} ({q.wordLimit} words limit)</span>
+                            <button
+                              onClick={() => deleteSupplementalQuestion(currentUniv.id, q.id)}
+                              className="text-stone-300 hover:text-rose-600"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-sm font-serif italic text-stone-800">&ldquo;{q.questionText}&rdquo;</p>
+                          <textarea
+                            rows={4}
+                            value={q.currentAnswer}
+                            onChange={(e) => updateSupplementalQuestion(currentUniv.id, q.id, { currentAnswer: e.target.value })}
+                            placeholder="Draft your supplemental answer here..."
+                            className="w-full text-xs font-serif p-2.5 bg-[#FAF8F5] border border-stone-200 rounded-lg focus:outline-none"
+                          />
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               );
@@ -881,45 +843,103 @@ export const EssaysView: React.FC = () => {
         </div>
       )}
 
-      {/* STORY BANK SUB-TAB */}
+      {/* STORY BANK SUB-TAB (Correlated with ECAs & Passion Projects) */}
       {activeSubTab === 'storybank' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-stone-600 font-sans">
-              Archive of meaningful personal narratives, pivotal moments, and leadership stories.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FAF8F5] p-4 rounded-2xl border border-[#EAE4DC]">
+            <div>
+              <h3 className="text-sm font-serif font-bold text-stone-900">Personal Story Bank</h3>
+              <p className="text-xs text-stone-600 font-sans mt-0.5">
+                Brainstorm key moments, resilience stories, and leadership breakthroughs. Connect them to your essays.
+              </p>
+            </div>
             <button
-              onClick={() => { setNewStoryModal(true); setEditingStory(null); }}
-              className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium cursor-pointer"
+              onClick={() => {
+                setEditingStory(null);
+                setStoryForm({
+                  storyTitle: '',
+                  experience: '',
+                  personalSignificance: '',
+                  challenge: '',
+                  learning: '',
+                  personalGrowth: '',
+                  possibleEssayConnection: '',
+                  relatedEca: ''
+                });
+                setNewStoryModal(true);
+              }}
+              className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium cursor-pointer shrink-0"
             >
               + Add Story
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {storyBank.map(story => (
-              <div key={story.id} className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold font-serif text-stone-900">{story.storyTitle}</h3>
-                  <button onClick={() => deleteStoryBankEntry(story.id)} className="text-stone-300 hover:text-rose-600">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <p className="text-xs text-stone-700 font-sans leading-relaxed"><strong>Experience:</strong> {story.experience}</p>
-                {story.challenge && <p className="text-xs text-stone-700 font-sans"><strong>Challenge:</strong> {story.challenge}</p>}
-                {story.learning && <p className="text-xs text-stone-700 font-sans"><strong>Learning:</strong> {story.learning}</p>}
-                {story.possibleEssayConnection && (
-                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-                    <strong>Essay Connection:</strong> {story.possibleEssayConnection}
+          {storyBank.length === 0 ? (
+            <div className="py-12 bg-[#FAF8F5] border border-dashed border-[#EAE4DC] rounded-2xl text-center space-y-3">
+              <Sparkles className="w-10 h-10 text-stone-300 mx-auto" />
+              <h3 className="text-base font-serif font-bold text-stone-800">
+                Your Story Bank is Empty
+              </h3>
+              <p className="text-xs text-stone-500 max-w-md mx-auto">
+                Save key memories, scientific breakthroughs, community leadership trials, or failures. You can even import directly from your logged ECAs and Passion Projects!
+              </p>
+              <button
+                onClick={() => {
+                  setEditingStory(null);
+                  setNewStoryModal(true);
+                }}
+                className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-bold hover:bg-stone-900 cursor-pointer"
+              >
+                + Add First Story
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {storyBank.map(story => (
+                <div key={story.id} className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold font-serif text-stone-900">{story.storyTitle}</h3>
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        onClick={() => {
+                          setEditingStory(story);
+                          setStoryForm({
+                            storyTitle: story.storyTitle,
+                            experience: story.experience,
+                            personalSignificance: story.personalSignificance || '',
+                            challenge: story.challenge || '',
+                            learning: story.learning || '',
+                            personalGrowth: story.personalGrowth || '',
+                            possibleEssayConnection: story.possibleEssayConnection || '',
+                            relatedEca: story.relatedEca || ''
+                          });
+                          setNewStoryModal(true);
+                        }}
+                        className="text-stone-400 hover:text-stone-800 text-xs font-mono"
+                      >
+                        Edit
+                      </button>
+                      <button onClick={() => deleteStoryBankEntry(story.id)} className="text-stone-300 hover:text-rose-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
-                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-[11px] font-mono text-stone-500">
-                  <span>{story.relatedEca ? `ECA: ${story.relatedEca}` : 'General Story'}</span>
-                  <span>Updated: {story.updatedAt}</span>
+                  <p className="text-xs text-stone-700 font-sans leading-relaxed"><strong>Experience:</strong> {story.experience}</p>
+                  {story.challenge && <p className="text-xs text-stone-700 font-sans"><strong>Challenge:</strong> {story.challenge}</p>}
+                  {story.learning && <p className="text-xs text-stone-700 font-sans"><strong>Learning:</strong> {story.learning}</p>}
+                  {story.possibleEssayConnection && (
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                      <strong>Essay Connection:</strong> {story.possibleEssayConnection}
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-[11px] font-mono text-stone-500">
+                    <span>{story.relatedEca ? `Linked: ${story.relatedEca}` : 'General Story'}</span>
+                    <span>Updated: {story.updatedAt?.split('T')[0] || 'Recently'}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -927,19 +947,19 @@ export const EssaysView: React.FC = () => {
       {newEssayModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <h3 className="text-xl font-bold font-serif text-stone-900">Create New Main Essay</h3>
+            <h3 className="text-xl font-bold font-serif text-stone-900">Create Main Essay Studio</h3>
             <form onSubmit={handleCreateMainEssay} className="space-y-4">
               <div>
                 <label className="block text-xs font-mono font-medium text-stone-700 mb-1">
-                  Essay Working Title *
+                  Essay Title *
                 </label>
                 <input
                   type="text"
                   required
                   value={newEssayTitle}
                   onChange={(e) => setNewEssayTitle(e.target.value)}
-                  placeholder="e.g. The Radio Repair Shop / Beyond The Blackboard"
-                  className="w-full px-3.5 py-2 border border-stone-300 bg-white rounded-xl text-xs font-sans text-stone-900"
+                  placeholder="e.g. Beyond The Equations / Resilience on the Mat"
+                  className="w-full px-3.5 py-2 border border-stone-300 bg-white rounded-xl text-xs font-sans text-stone-900 focus:outline-none"
                 />
               </div>
 
@@ -958,6 +978,21 @@ export const EssaysView: React.FC = () => {
                   <option value="custom">Custom Prompt / Topic of Choice</option>
                 </select>
               </div>
+
+              {selectedPromptId === 'custom' && (
+                <div>
+                  <label className="block text-xs font-mono font-medium text-stone-700 mb-1">
+                    Custom Prompt Text
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={customPromptText}
+                    onChange={(e) => setCustomPromptText(e.target.value)}
+                    placeholder="Enter custom prompt question..."
+                    className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-xs font-sans text-stone-900"
+                  />
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
                 <button
@@ -979,28 +1014,167 @@ export const EssaysView: React.FC = () => {
         </div>
       )}
 
-      {/* DRAFT COMPARE MODAL */}
-      {compareDraftsModal && (
+      {/* CREATE/EDIT STORY MODAL (WITH ECA & PROJECT CORRELATION) */}
+      {newStoryModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-4xl w-full p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-              <h3 className="text-lg font-bold font-serif text-stone-900">Compare Draft Versions</h3>
-              <button onClick={() => setCompareDraftsModal(false)} className="text-stone-400 hover:text-stone-900 text-sm">✕</button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-2">
-                <div className="text-xs font-mono font-bold text-stone-900">Current Final Draft (842 words)</div>
-                <div className="text-xs font-serif text-stone-700 leading-relaxed max-h-80 overflow-y-auto">
-                  {activeMainEssay?.currentContent.replace(/<[^>]*>/g, ' ') || 'Growing up, I always believed in the power of knowledge, curiosity, and hard work...'}
+          <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold font-serif text-stone-900">
+              {editingStory ? 'Edit Story Bank Entry' : 'Add Story Bank Entry'}
+            </h3>
+
+            {/* Section Correlation Quick Buttons */}
+            {!editingStory && (ecaActivities.length > 0 || activePassionProjects.length > 0) && (
+              <div className="p-3 bg-[#F2EDE4] rounded-xl space-y-2 text-xs font-mono">
+                <span className="text-[10px] uppercase font-bold text-stone-600 block">
+                  Quick Correlate from logged activities or projects:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {ecaActivities.map(a => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => handleImportEcaToStory(a.id)}
+                      className="px-2 py-1 bg-white border border-stone-300 rounded text-[11px] text-stone-800 hover:bg-stone-100 cursor-pointer"
+                    >
+                      ECA: {a.activityName}
+                    </button>
+                  ))}
+                  {activePassionProjects.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleImportProjectToStory(p.id)}
+                      className="px-2 py-1 bg-white border border-stone-300 rounded text-[11px] text-stone-800 hover:bg-stone-100 cursor-pointer"
+                    >
+                      Project: {p.projectTitle}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="p-4 bg-white rounded-xl border border-stone-200 space-y-2">
-                <div className="text-xs font-mono font-bold text-stone-900">Earlier Draft (743 words)</div>
-                <div className="text-xs font-serif text-stone-600 leading-relaxed max-h-80 overflow-y-auto">
-                  Growing up in Dhaka, I spent hours taking apart old transistor radios, marveling at how copper circuits carried voices across distances...
-                </div>
+            )}
+
+            <form onSubmit={handleSaveStory} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Story Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={storyForm.storyTitle}
+                  onChange={(e) => setStoryForm(prev => ({ ...prev, storyTitle: e.target.value }))}
+                  placeholder="e.g. The Night the Robotics Sensor Failed"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
               </div>
-            </div>
+
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Core Experience *</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={storyForm.experience}
+                  onChange={(e) => setStoryForm(prev => ({ ...prev, experience: e.target.value }))}
+                  placeholder="What happened? Set the scene..."
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Obstacle or Challenge</label>
+                <textarea
+                  rows={2}
+                  value={storyForm.challenge}
+                  onChange={(e) => setStoryForm(prev => ({ ...prev, challenge: e.target.value }))}
+                  placeholder="What was difficult or unexpected?"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Key Learning / Growth</label>
+                <textarea
+                  rows={2}
+                  value={storyForm.learning}
+                  onChange={(e) => setStoryForm(prev => ({ ...prev, learning: e.target.value }))}
+                  placeholder="How did this change your perspective or behavior?"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Possible Essay Connection</label>
+                <input
+                  type="text"
+                  value={storyForm.possibleEssayConnection}
+                  onChange={(e) => setStoryForm(prev => ({ ...prev, possibleEssayConnection: e.target.value }))}
+                  placeholder="e.g. Common App Prompt #2 or Stanford Roommate Letter"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setNewStoryModal(false)}
+                  className="px-4 py-2 text-stone-600 hover:text-stone-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl font-mono font-medium cursor-pointer"
+                >
+                  Save Story
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD SUPPLEMENTAL QUESTION MODAL */}
+      {newSuppQuestionModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF8F5] rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-xl font-bold font-serif text-stone-900">Add Supplemental Prompt</h3>
+            <form onSubmit={handleAddSuppQuestion} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Prompt Question Text *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={suppQuestionForm.questionText}
+                  onChange={(e) => setSuppQuestionForm(prev => ({ ...prev, questionText: e.target.value }))}
+                  placeholder="e.g. Why do you wish to study at this university? (250 words)"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono font-medium text-stone-700 mb-1">Word Limit</label>
+                <input
+                  type="number"
+                  value={suppQuestionForm.wordLimit}
+                  onChange={(e) => setSuppQuestionForm(prev => ({ ...prev, wordLimit: Number(e.target.value) || 250 }))}
+                  className="w-full px-3 py-2 border border-stone-300 bg-white rounded-xl text-stone-900"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setNewSuppQuestionModal(false)}
+                  className="px-4 py-2 text-stone-600 hover:text-stone-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl font-mono font-medium cursor-pointer"
+                >
+                  Add Prompt
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

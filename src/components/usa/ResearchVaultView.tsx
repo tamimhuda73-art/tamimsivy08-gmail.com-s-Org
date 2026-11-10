@@ -46,21 +46,12 @@ export const ResearchVaultView: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [newModalOpen, setNewModalOpen] = useState(false);
 
-  // Editable dates map
-  const [itemDates, setItemDates] = useState<Record<string, string>>({
-    'v-1': 'Nov 5, 2026',
-    'v-2': 'Nov 2, 2026',
-    'v-3': 'Oct 28, 2026',
-    'v-4': 'Oct 22, 2026',
-    'v-5': 'Oct 15, 2026',
-    'v-6': 'Oct 10, 2026',
-  });
-
   const [itemForm, setItemForm] = useState({
     title: '',
     description: '',
     category: 'University Research' as VaultCategory,
     sourceUrl: '',
+    relatedUniversityId: '',
     lastVerifiedDate: 'Nov 9, 2026',
     tagsText: 'Admissions, Fall 2028',
     personalNotes: ''
@@ -97,27 +88,31 @@ export const ResearchVaultView: React.FC = () => {
     });
   }, [researchVaultItems, selectedCategory, searchQuery]);
 
+  const savedDocsCount = researchVaultItems.filter(i => !i.sourceUrl).length;
+  const savedLinksCount = researchVaultItems.filter(i => !!i.sourceUrl).length;
+  const verifiedWithNotesCount = researchVaultItems.filter(i => !!i.personalNotes).length;
+
   const handleSaveItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemForm.title.trim()) return;
 
-    const newId = `vault-${Date.now()}`;
     addResearchVaultItem({
       title: itemForm.title.trim(),
       description: itemForm.description.trim(),
       category: itemForm.category,
       sourceUrl: itemForm.sourceUrl.trim(),
+      relatedUniversityId: itemForm.relatedUniversityId.trim() || undefined,
       lastVerifiedDate: itemForm.lastVerifiedDate,
       tags: itemForm.tagsText.split(',').map(s => s.trim()).filter(Boolean),
       personalNotes: itemForm.personalNotes.trim()
     });
 
-    setItemDates(prev => ({ ...prev, [newId]: itemForm.lastVerifiedDate }));
     setItemForm({
       title: '',
       description: '',
       category: 'University Research',
       sourceUrl: '',
+      relatedUniversityId: '',
       lastVerifiedDate: 'Nov 9, 2026',
       tagsText: '',
       personalNotes: ''
@@ -161,7 +156,7 @@ export const ResearchVaultView: React.FC = () => {
         </div>
       </div>
 
-      {/* Top 4 Stat Cards (Matches image_bc55f446.png) */}
+      {/* Top 4 Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Stat 1 */}
         <div className="bg-[#FAF8F5] border border-[#EAE4DC] rounded-2xl p-4 shadow-2xs flex items-center gap-3.5">
@@ -172,7 +167,7 @@ export const ResearchVaultView: React.FC = () => {
             <span className="text-xl font-bold font-mono text-stone-900 block leading-tight">
               {researchVaultItems.length}
             </span>
-            <span className="text-xs text-stone-500 font-sans">Total Research Entries</span>
+            <span className="text-xs text-stone-500 font-sans">Total Entries</span>
           </div>
         </div>
 
@@ -183,9 +178,9 @@ export const ResearchVaultView: React.FC = () => {
           </div>
           <div>
             <span className="text-xl font-bold font-mono text-stone-900 block leading-tight">
-              14
+              {savedDocsCount}
             </span>
-            <span className="text-xs text-stone-500 font-sans">Saved Documents</span>
+            <span className="text-xs text-stone-500 font-sans">Saved Notes</span>
           </div>
         </div>
 
@@ -196,9 +191,9 @@ export const ResearchVaultView: React.FC = () => {
           </div>
           <div>
             <span className="text-xl font-bold font-mono text-stone-900 block leading-tight">
-              26
+              {savedLinksCount}
             </span>
-            <span className="text-xs text-stone-500 font-sans">Saved Links</span>
+            <span className="text-xs text-stone-500 font-sans">Saved Web Links</span>
           </div>
         </div>
 
@@ -209,14 +204,14 @@ export const ResearchVaultView: React.FC = () => {
           </div>
           <div>
             <span className="text-xl font-bold font-mono text-stone-900 block leading-tight">
-              8
+              {verifiedWithNotesCount}
             </span>
-            <span className="text-xs text-stone-500 font-sans">Recently Updated</span>
+            <span className="text-xs text-stone-500 font-sans">Notes with Analysis</span>
           </div>
         </div>
       </div>
 
-      {/* Research Categories Grid (12 Items, 6 cols x 2 rows, matching image_bc55f446.png) */}
+      {/* Research Categories Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -273,17 +268,11 @@ export const ResearchVaultView: React.FC = () => {
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-[#3B302A]" />
             <h3 className="text-base font-bold font-serif text-stone-900">
-              My Research Library
+              My Research Library ({filteredItems.length})
             </h3>
           </div>
 
           <div className="flex items-center gap-2">
-            <select className="px-2.5 py-1.5 bg-white border border-[#E2DBD1] rounded-xl text-xs font-mono text-stone-800 cursor-pointer">
-              <option>Sort: Newest First</option>
-              <option>Sort: Title A-Z</option>
-              <option>Sort: Category</option>
-            </select>
-
             <div className="flex items-center bg-white border border-[#E2DBD1] rounded-xl p-0.5">
               <button
                 onClick={() => setViewMode('grid')}
@@ -319,76 +308,92 @@ export const ResearchVaultView: React.FC = () => {
               Your Research Vault is Empty
             </h4>
             <p className="text-xs text-stone-500 font-sans max-w-sm mx-auto">
-              Start saving your research, notes, and useful links to build your personal knowledge base.
+              Start saving your college requirements, faculty research links, scholarship opportunities, and application insights here.
             </p>
             <button
               onClick={() => setNewModalOpen(true)}
-              className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+              className="px-4 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium cursor-pointer"
             >
-              + Add Your First Research
+              + Add Your First Research Entry
             </button>
           </div>
         ) : (
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
-            {filteredItems.map(item => (
-              <div
-                key={item.id}
-                className="p-4 bg-white border border-[#EAE4DC] rounded-xl hover:border-stone-400 transition-all flex flex-col justify-between space-y-3"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded">
-                      {item.category}
-                    </span>
-                    <button
-                      onClick={() => deleteResearchVaultItem(item.id)}
-                      className="text-stone-300 hover:text-rose-600 p-0.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <h4 className="text-sm font-bold font-serif text-stone-900 line-clamp-1">
-                    {item.title}
-                  </h4>
-
-                  {item.description && (
-                    <p className="text-xs text-stone-600 font-sans line-clamp-2">
-                      {item.description}
-                    </p>
-                  )}
-
-                  {item.personalNotes && (
-                    <div className="p-2 bg-[#FAF8F5] rounded-lg text-xs font-serif italic text-stone-700 border border-stone-200/60">
-                      &ldquo;{item.personalNotes}&rdquo;
+            {filteredItems.map(item => {
+              const linkedUni = item.relatedUniversityId ? universities.find(u => u.id === item.relatedUniversityId) : null;
+              return (
+                <div
+                  key={item.id}
+                  className="p-4 bg-white border border-[#EAE4DC] rounded-xl hover:border-stone-400 transition-all flex flex-col justify-between space-y-3 shadow-2xs"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded">
+                        {item.category}
+                      </span>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete research entry "${item.title}"?`)) {
+                            deleteResearchVaultItem(item.id);
+                          }
+                        }}
+                        className="text-stone-300 hover:text-rose-600 p-0.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  )}
-                </div>
 
-                <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] font-mono text-stone-500">
-                  <div className="flex items-center gap-1">
-                    <span>Verified:</span>
-                    <EditableDate
-                      value={itemDates[item.id] || item.lastVerifiedDate || 'Nov 9, 2026'}
-                      onChange={(val) => setItemDates(prev => ({ ...prev, [item.id]: val }))}
-                      className="text-stone-700 font-semibold"
-                    />
+                    <h4 className="text-sm font-bold font-serif text-stone-900 line-clamp-1">
+                      {item.title}
+                    </h4>
+
+                    {linkedUni && (
+                      <button
+                        onClick={() => {
+                          setSelectedUniversityId(linkedUni.id);
+                          setActiveTab('usa-colleges');
+                        }}
+                        className="text-[10px] font-mono font-semibold text-[#3B302A] bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Building className="w-2.5 h-2.5" />
+                        <span>{linkedUni.name} Dossier</span>
+                      </button>
+                    )}
+
+                    {item.description && (
+                      <p className="text-xs text-stone-600 font-sans line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+
+                    {item.personalNotes && (
+                      <div className="p-2 bg-[#FAF8F5] rounded-lg text-xs font-serif italic text-stone-700 border border-stone-200/60">
+                        &ldquo;{item.personalNotes}&rdquo;
+                      </div>
+                    )}
                   </div>
 
-                  {item.sourceUrl && (
-                    <a
-                      href={item.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#3B302A] hover:underline font-bold inline-flex items-center gap-1"
-                    >
-                      <span>Visit</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] font-mono text-stone-500">
+                    <div className="flex items-center gap-1">
+                      <span>Verified:</span>
+                      <span className="text-stone-700 font-semibold">{item.lastVerifiedDate || 'Nov 2026'}</span>
+                    </div>
+
+                    {item.sourceUrl && (
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#3B302A] hover:underline font-bold inline-flex items-center gap-1"
+                      >
+                        <span>Visit</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -426,27 +431,36 @@ export const ResearchVaultView: React.FC = () => {
                     <option value="Application Strategy">Application Strategy</option>
                     <option value="Essays">Essays</option>
                     <option value="SAT">SAT</option>
+                    <option value="IELTS / TOEFL">IELTS / TOEFL</option>
+                    <option value="ECAs">ECAs</option>
+                    <option value="Passion Projects">Passion Projects</option>
+                    <option value="Visa Information">Visa Information</option>
+                    <option value="Scholarships">Scholarships</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-stone-700 mb-1">Verification Date</label>
-                  <input
-                    type="text"
-                    value={itemForm.lastVerifiedDate}
-                    onChange={(e) => setItemForm({ ...itemForm, lastVerifiedDate: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-xl text-xs font-mono"
-                  />
+                  <label className="block text-xs font-mono text-stone-700 mb-1">Related University</label>
+                  <select
+                    value={itemForm.relatedUniversityId}
+                    onChange={(e) => setItemForm({ ...itemForm, relatedUniversityId: e.target.value })}
+                    className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-xl text-xs"
+                  >
+                    <option value="">General (No College)</option>
+                    {universities.map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-stone-700 mb-1">Source URL</label>
+                <label className="block text-xs font-mono text-stone-700 mb-1">Source URL (Optional)</label>
                 <input
                   type="url"
                   value={itemForm.sourceUrl}
                   onChange={(e) => setItemForm({ ...itemForm, sourceUrl: e.target.value })}
-                  placeholder="https://..."
+                  placeholder="https://admissions.university.edu/..."
                   className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-mono"
                 />
               </div>
@@ -457,7 +471,19 @@ export const ResearchVaultView: React.FC = () => {
                   rows={2}
                   value={itemForm.description}
                   onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                  placeholder="Key criteria, deadlines, professor contacts, or course codes..."
                   className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-stone-700 mb-1">Personal Notes / Strategy Reflection</label>
+                <textarea
+                  rows={2}
+                  value={itemForm.personalNotes}
+                  onChange={(e) => setItemForm({ ...itemForm, personalNotes: e.target.value })}
+                  placeholder="How does this apply to my application essays or interview answers?"
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-serif"
                 />
               </div>
 
@@ -465,13 +491,13 @@ export const ResearchVaultView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setNewModalOpen(false)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900"
+                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium"
+                  className="px-5 py-2 bg-[#3B302A] text-white rounded-xl text-xs font-mono font-medium cursor-pointer"
                 >
                   Save Entry
                 </button>
