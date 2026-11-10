@@ -62,6 +62,17 @@ export const RightSidebar: React.FC = () => {
   const hscMission = missions.find(m => m.id === 'mission-hsc') || missions[1];
   const usaMilestone = majorMilestones[0];
 
+  const weeklyStats = React.useMemo(() => {
+    const totalSecs = sessionRecords.reduce((acc, r) => acc + (r.durationSeconds || 0), 0);
+    const hours = Math.floor(totalSecs / 3600);
+    const minutes = Math.floor((totalSecs % 3600) / 60);
+    const sessions = sessionRecords.filter(r => r.status === 'completed').length;
+    return {
+      timeStr: `${hours}h ${minutes}m`,
+      sessionsCount: sessions
+    };
+  }, [sessionRecords]);
+
   const satCountdown = getCountdownDetails(satMission?.targetDate || '2027-03-06', satMission?.dateStatus || 'TENTATIVE');
   const hscCountdown = getCountdownDetails(hscMission?.targetDate || '2027-06-06', hscMission?.dateStatus || 'TENTATIVE');
   const usaCountdown = getCountdownDetails(usaMilestone?.targetDate || '2027-11-01', usaMilestone?.dateStatus || 'PLANNED');
@@ -247,11 +258,11 @@ export const RightSidebar: React.FC = () => {
           <div className="p-4 pt-0 space-y-2 border-t border-gray-100 text-xs">
             <div className="flex items-baseline justify-between">
               <span className="text-gray-500 font-mono">Total Recorded:</span>
-              <span className="font-extrabold text-gray-900 font-mono text-sm">24h 87m</span>
+              <span className="font-extrabold text-gray-900 font-mono text-sm">{weeklyStats.timeStr}</span>
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-gray-500 font-mono">Sessions Completed:</span>
-              <span className="font-bold text-gray-800 font-mono">18 sessions</span>
+              <span className="font-bold text-gray-800 font-mono">{weeklyStats.sessionsCount} sessions</span>
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-gray-500 font-mono">Pace Status:</span>

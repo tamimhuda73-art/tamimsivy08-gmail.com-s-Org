@@ -121,6 +121,8 @@ interface TrackerContextType {
   setAllChaptersStatus: (subjectId: string, completed: boolean) => void;
 
   // Actions: Missions & Countdowns
+  addMission: (mission: Omit<Mission, 'id'>) => void;
+  deleteMission: (id: string) => void;
   updateMission: (id: string, updates: Partial<Mission>) => void;
   toggleMilestone: (missionId: string, milestoneId: string) => void;
   updateCountdown: (id: string, updates: Partial<CountdownTarget>) => void;
@@ -397,6 +399,29 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   }, []);
 
+  // Sync completion from underlying Subject chapters back to Monthly Assignments
+  const syncChapterToAssignments = useCallback((subjectName: string, paperNum: number, chapterNum: number, isCompleted: boolean) => {
+    setMonthlyAssignments(prev => prev.map(a => {
+      const sKey = a.subjectKey.toLowerCase();
+      const sName = subjectName.toLowerCase();
+      const isMatch = (sName.includes('physics') && sKey.includes('physics'))
+        || (sName.includes('chem') && sKey.includes('chem'))
+        || (sName.includes('math') && sKey.includes('math'))
+        || (sName.includes('bio') && sKey.includes('bio'))
+        || (sName.includes('ict') && sKey.includes('ict'));
+      if (!isMatch) return a;
+      const aPaper = sKey.includes('2') ? 2 : 1;
+      if (aPaper !== paperNum) return a;
+      if (a.chapterNumber !== chapterNum) return a;
+      return {
+        ...a,
+        completed: isCompleted,
+        status: isCompleted ? 'COMPLETED' : 'NOT STARTED',
+        completionDate: isCompleted ? (a.completionDate || new Date().toISOString().split('T')[0]) : undefined
+      };
+    }));
+  }, []);
+
   // SUBJECT & PAPER & CHAPTER ACTIONS
   const addSubject = useCallback((name: string, hasPapers: boolean = true) => {
     const trimmed = name.trim();
@@ -586,51 +611,78 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const toggleChapterInPaper = useCallback((subjectId: string, paperId: string, chapterId: string) => {
+    let changedSubjName = '';
+    let changedPaperNum = 1;
+    let changedChapterNum = 0;
+    let nextDone = false;
+
     setSubjects(prev => prev.map(s => {
       if (s.id !== subjectId) return s;
+      changedSubjName = s.name;
       const updatedPapers = s.papers.map(p => {
         if (p.id !== paperId && p.chapters.every(c => c.id !== chapterId)) return p;
+        changedPaperNum = p.paperNumber;
         return {
           ...p,
           chapters: p.chapters.map(c => {
             if (c.id !== chapterId) return c;
-            const nextCompleted = !c.completed;
+            nextDone = !c.completed;
+            changedChapterNum = c.chapterNumber;
             return {
               ...c,
-              completed: nextCompleted,
-              status: (nextCompleted ? 'COMPLETED' : 'NOT STARTED') as ChapterStatus,
-              completionDate: nextCompleted ? new Date().toISOString().split('T')[0] : undefined
+              completed: nextDone,
+              status: (nextDone ? 'COMPLETED' : 'NOT STARTED') as ChapterStatus,
+              completionDate: nextDone ? new Date().toISOString().split('T')[0] : undefined
             };
           })
         };
       });
       return syncSubjectRollup({ ...s, papers: updatedPapers });
     }));
-  }, []);
+
+    if (changedSubjName && changedChapterNum > 0) {
+      syncChapterToAssignments(changedSubjName, changedPaperNum, changedChapterNum, nextDone);
+    }
+  }, [syncChapterToAssignments]);
 
   const updateChapterDetailsInPaper = useCallback((subjectId: string, paperId: string, chapterId: string, updates: Partial<Chapter>) => {
+    let changedSubjName = '';
+    let changedPaperNum = 1;
+    let changedChapterNum = 0;
+    let isStatusUpdate = false;
+    let finalCompleted = false;
+
     setSubjects(prev => prev.map(s => {
       if (s.id !== subjectId) return s;
+      changedSubjName = s.name;
       const updatedPapers = s.papers.map(p => {
         if (p.id !== paperId && p.chapters.every(c => c.id !== chapterId)) return p;
+        changedPaperNum = p.paperNumber;
         return {
           ...p,
           chapters: p.chapters.map(c => {
             if (c.id !== chapterId) return c;
+            changedChapterNum = c.chapterNumber;
             const updated = { ...c, ...updates };
             if (updates.status) {
+              isStatusUpdate = true;
               if (updates.status === 'COMPLETED') {
                 updated.completed = true;
+                finalCompleted = true;
                 if (!updated.completionDate) updated.completionDate = new Date().toISOString().split('T')[0];
               } else if (updates.status === 'IN PROGRESS') {
                 updated.completed = false;
+                finalCompleted = false;
               } else if (updates.status === 'NOT STARTED') {
                 updated.completed = false;
+                finalCompleted = false;
                 updated.completionDate = undefined;
               }
             }
             if (updates.completed !== undefined) {
+              isStatusUpdate = true;
               updated.completed = updates.completed;
+              finalCompleted = updates.completed;
               updated.status = (updates.completed ? 'COMPLETED' : 'NOT STARTED') as ChapterStatus;
               if (updates.completed && !updated.completionDate) {
                 updated.completionDate = new Date().toISOString().split('T')[0];
@@ -642,13 +694,24 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
       return syncSubjectRollup({ ...s, papers: updatedPapers });
     }));
-  }, []);
+
+    if (isStatusUpdate && changedSubjName && changedChapterNum > 0) {
+      syncChapterToAssignments(changedSubjName, changedPaperNum, changedChapterNum, finalCompleted);
+    }
+  }, [syncChapterToAssignments]);
 
   const setAllChaptersInPaper = useCallback((subjectId: string, paperId: string, completed: boolean) => {
+    let targetSubjName = '';
+    let targetPaperNum = 1;
+    let chaptersCount = 0;
+
     setSubjects(prev => prev.map(s => {
       if (s.id !== subjectId) return s;
+      targetSubjName = s.name;
       const updatedPapers = s.papers.map(p => {
         if (p.id !== paperId) return p;
+        targetPaperNum = p.paperNumber;
+        chaptersCount = p.chapters.length;
         return {
           ...p,
           chapters: p.chapters.map(c => ({
@@ -661,7 +724,13 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
       return syncSubjectRollup({ ...s, papers: updatedPapers });
     }));
-  }, []);
+
+    if (targetSubjName && chaptersCount > 0) {
+      for (let chNum = 1; chNum <= chaptersCount; chNum++) {
+        syncChapterToAssignments(targetSubjName, targetPaperNum, chNum, completed);
+      }
+    }
+  }, [syncChapterToAssignments]);
 
   // Backward-compatible wrappers for Subject-level actions
   const addChapter = useCallback((subjectId: string, name: string) => {
@@ -717,6 +786,21 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   // MISSIONS & MILESTONES
+  const addMission = useCallback((mission: Omit<Mission, 'id'>) => {
+    const newId = `mission-${Date.now()}`;
+    const newMission: Mission = {
+      ...mission,
+      id: newId,
+      order: missions.length + 1
+    };
+    setMissions(prev => [...prev, newMission]);
+  }, [missions.length]);
+
+  const deleteMission = useCallback((id: string) => {
+    setMissions(prev => prev.filter(m => m.id !== id));
+    setCountdowns(prev => prev.filter(c => c.id !== `countdown-${id.replace('mission-', '')}`));
+  }, []);
+
   const updateMission = useCallback((id: string, updates: Partial<Mission>) => {
     setMissions(prev => prev.map(m => {
       if (m.id !== id) return m;
@@ -1424,6 +1508,8 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     updateChapterDetails,
     setAllChaptersStatus,
     // Missions & Countdowns
+    addMission,
+    deleteMission,
     updateMission,
     toggleMilestone,
     updateCountdown,
@@ -1528,6 +1614,8 @@ export const TrackerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     toggleChapter,
     updateChapterDetails,
     setAllChaptersStatus,
+    addMission,
+    deleteMission,
     updateMission,
     toggleMilestone,
     updateCountdown,

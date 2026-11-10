@@ -21,6 +21,8 @@ import { Mission, MajorMilestone, DateConfirmationStatus } from '../types/tracke
 export const MissionsView: React.FC = () => {
   const { 
     missions, 
+    addMission,
+    deleteMission,
     reorderMissions,
     majorMilestones,
     updateMajorMilestone,
@@ -60,6 +62,29 @@ export const MissionsView: React.FC = () => {
     setIsAddMilestoneOpen(false);
   };
 
+  const handleCreateMission = () => {
+    addMission({
+      title: 'New Academic Target',
+      code: 'TARGET',
+      goal: 'Achieve Target Outcome',
+      category: 'Academic Goal',
+      targetDate: '2027-06-01',
+      dateStatus: 'TENTATIVE',
+      progressPercentage: 0,
+      status: 'Not Started',
+      subtext: 'Not Started',
+      targetDescription: 'Target description and action plan.',
+      targetScore: '100%',
+      deadline: '2027-06-01',
+      milestones: [
+        { id: `ms-${Date.now()}-1`, title: 'Preparation and materials gathering', completed: false },
+        { id: `ms-${Date.now()}-2`, title: 'Core practice tests and revision', completed: false }
+      ],
+      colorAccent: 'espresso',
+      order: missions.length + 1
+    });
+  };
+
   const getAccentColors = (color: string) => {
     switch (color) {
       case 'beige':
@@ -87,14 +112,21 @@ export const MissionsView: React.FC = () => {
             Comeback Missions & Major Milestones
           </h1>
           <p className="text-xs text-gray-500 font-mono mt-0.5">
-            Four Primary Academic Goals • Major Milestones • Admin Date & Score Controls
+            Academic Goals • Major Milestones • Admin Date & Score Controls
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="text-xs font-mono text-gray-600 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
             Average Target Progress: <strong className="text-gray-900">{Math.round(missions.reduce((acc, m) => acc + m.progressPercentage, 0) / Math.max(1, missions.length))}%</strong>
           </div>
+          <button
+            onClick={handleCreateMission}
+            className="px-3.5 py-1.5 bg-[#3B302A] hover:bg-[#2E2520] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Mission</span>
+          </button>
           <button
             onClick={() => setIsAddMilestoneOpen(true)}
             className="px-3.5 py-1.5 bg-black hover:bg-gray-800 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -278,6 +310,18 @@ export const MissionsView: React.FC = () => {
                   >
                     <Edit3 className="w-3 h-3" />
                     <span>Configure</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete mission "${mission.title}"?`)) {
+                        deleteMission(mission.id);
+                      }
+                    }}
+                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors cursor-pointer"
+                    title="Delete mission"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 

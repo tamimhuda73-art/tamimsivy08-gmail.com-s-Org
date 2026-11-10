@@ -14,7 +14,8 @@ import {
   Layers,
   Edit2,
   Plus,
-  ExternalLink
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { EditableDate } from './EditableDate';
@@ -23,6 +24,7 @@ export const StrategyView: React.FC = () => {
   const { 
     universities, 
     updateUniversity,
+    deleteUniversity,
     mainEssays,
     sopDocuments,
     recommendationNotebooks,
@@ -327,15 +329,26 @@ export const StrategyView: React.FC = () => {
                       <td className="py-2.5 text-stone-600 font-mono text-[11px]">
                         {uni.city ? `${uni.city}, ${uni.state}` : (uni.campusSetting || 'USA')}
                       </td>
-                      <td className="py-2.5 text-right font-mono">
+                      <td className="py-2.5 text-right font-mono flex items-center justify-end gap-2">
                         <button
                           onClick={() => {
                             setSelectedUniversityId(uni.id);
                             setActiveTab('usa-colleges');
                           }}
-                          className="text-[#3B302A] hover:underline font-bold text-[11px]"
+                          className="text-[#3B302A] hover:underline font-bold text-[11px] cursor-pointer"
                         >
                           Dossier &rarr;
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Delete ${uni.name} from your college list?`)) {
+                              deleteUniversity(uni.id);
+                            }
+                          }}
+                          className="p-1 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                          title="Delete university"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </td>
                     </tr>

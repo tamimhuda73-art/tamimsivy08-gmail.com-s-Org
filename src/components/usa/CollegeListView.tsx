@@ -18,7 +18,8 @@ import {
   FileText,
   SlidersHorizontal,
   ChevronLeft,
-  Building
+  Building,
+  Trash2
 } from 'lucide-react';
 import { useUsaApp } from '../../context/UsaAppContext';
 import { 
@@ -36,6 +37,7 @@ export const CollegeListView: React.FC = () => {
     universities, 
     addUniversity, 
     updateUniversity,
+    deleteUniversity,
     selectedCollegeTab, 
     setSelectedCollegeTab, 
     selectedUniversityId, 
@@ -406,15 +408,30 @@ export const CollegeListView: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavoriteUniversity(univ.id);
-                      }}
-                      className="p-1 text-stone-300 hover:text-amber-500 transition-colors cursor-pointer"
-                    >
-                      <Star className={`w-4 h-4 ${univ.isFavorite ? 'text-amber-500 fill-amber-500' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavoriteUniversity(univ.id);
+                        }}
+                        className="p-1 text-stone-300 hover:text-amber-500 transition-colors cursor-pointer"
+                        title={univ.isFavorite ? "Remove favorite" : "Mark favorite"}
+                      >
+                        <Star className={`w-4 h-4 ${univ.isFavorite ? 'text-amber-500 fill-amber-500' : ''}`} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Delete ${univ.name} from your college list?`)) {
+                            deleteUniversity(univ.id);
+                          }
+                        }}
+                        className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                        title="Delete university"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Pills */}
@@ -536,6 +553,18 @@ export const CollegeListView: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Delete ${selectedUniv.name} from your college list?`)) {
+                      deleteUniversity(selectedUniv.id);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg text-xs font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Delete college from list"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                  <span>Delete</span>
+                </button>
                 <button
                   onClick={() => setIsFullProfileModalOpen(true)}
                   className="px-3 py-1.5 bg-[#FAF7F2] hover:bg-[#F2ECE4] border border-[#EAE4DC] text-stone-800 rounded-lg text-xs font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer"
@@ -852,10 +881,24 @@ export const CollegeListView: React.FC = () => {
 
                     <div className="flex items-center gap-2 shrink-0">
                       {isAdded ? (
-                        <span className="px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-mono font-bold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Added</span>
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-mono font-bold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Added</span>
+                          </span>
+                          <button
+                            onClick={() => {
+                              const target = universities.find(u => u.name.toLowerCase() === item.name.toLowerCase());
+                              if (target && window.confirm(`Remove ${item.name} from your list?`)) {
+                                deleteUniversity(target.id);
+                              }
+                            }}
+                            className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove from list"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => handleAddFromDiscovery(item, item.suggestedTier)}

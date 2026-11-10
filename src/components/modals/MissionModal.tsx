@@ -8,6 +8,7 @@ export const MissionModal: React.FC = () => {
     activeMissionModal, 
     setActiveMissionModal, 
     updateMission, 
+    deleteMission,
     toggleMilestone,
     setActiveDateModal
   } = useTracker();
@@ -285,7 +286,20 @@ export const MissionModal: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+        <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Are you sure you want to delete mission "${mission.title}"?`)) {
+                deleteMission(mission.id);
+                setActiveMissionModal(null);
+              }
+            }}
+            className="px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Mission</span>
+          </button>
           <button
             onClick={() => setActiveMissionModal(null)}
             className="px-4 py-2 bg-black text-white text-xs font-semibold rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
