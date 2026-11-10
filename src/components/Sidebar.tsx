@@ -18,7 +18,8 @@ import {
   ChevronsLeft,
   ChevronDown,
   ChevronRight,
-  Compass
+  Compass,
+  Sparkles
 } from 'lucide-react';
 import { useTracker } from '../context/TrackerContext';
 import { useUsaApp } from '../context/UsaAppContext';
@@ -39,7 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     setIsProfileDrawerOpen 
   } = useTracker();
 
-  const { activeSubSection, setActiveSubSection } = useUsaApp();
+  const { activeSubSection, setActiveSubSection, openAiDrawer } = useUsaApp();
   const [usaMenuExpanded, setUsaMenuExpanded] = useState(true);
 
   const usaSubSections: { id: UsaSubSection; label: string }[] = [
@@ -53,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     { id: 'projects', label: '8. Passion Projects' },
     { id: 'strategy', label: '9. Strategy & Rounds' },
     { id: 'vault', label: '10. Research Vault' },
+    { id: 'admissions-ai', label: '11. Admissions AI ✨' },
   ];
 
   const navItems: { id: NavTab; label: string; icon: React.ElementType }[] = [
@@ -144,6 +146,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
               <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400">
                 Admissions Workspace
               </div>
+
+              {/* Quick Admissions AI Trigger Button */}
+              <button
+                onClick={() => openAiDrawer()}
+                className="w-full mb-1 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-stone-900 to-amber-950 text-white text-xs font-mono font-bold hover:shadow-xs transition-all cursor-pointer shadow-2xs group"
+                title="Open Admissions AI Assistant"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>Ask Admissions AI</span>
+                </div>
+                <span className="text-[9px] bg-amber-400/20 text-amber-200 px-1.5 py-0.5 rounded font-mono">
+                  2028
+                </span>
+              </button>
               
               <button
                 onClick={() => {

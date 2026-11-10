@@ -26,6 +26,8 @@ import { EcasView } from './EcasView';
 import { PassionProjectsView } from './PassionProjectsView';
 import { StrategyView } from './StrategyView';
 import { ResearchVaultView } from './ResearchVaultView';
+import { AdmissionsAiView } from './AdmissionsAiView';
+import { AdmissionsAiDrawer } from './AdmissionsAiDrawer';
 import { UsaSettingsModal } from './UsaSettingsModal';
 
 export const UsaAppWorkspace: React.FC = () => {
@@ -42,7 +44,8 @@ export const UsaAppWorkspace: React.FC = () => {
     activePassionProjects,
     researchVaultItems,
     setSelectedUniversityId,
-    setActiveMainEssayId
+    setActiveMainEssayId,
+    openAiDrawer
   } = useUsaApp();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -58,6 +61,7 @@ export const UsaAppWorkspace: React.FC = () => {
     { id: 'projects', label: 'Passion Projects', icon: Sparkles },
     { id: 'strategy', label: 'Application Strategy', icon: Compass },
     { id: 'vault', label: 'Research Vault', icon: Bookmark },
+    { id: 'admissions-ai', label: 'Admissions AI', icon: Sparkles },
   ];
 
   // Quick Global Search filter results when typing in header search
@@ -125,16 +129,25 @@ export const UsaAppWorkspace: React.FC = () => {
           })}
         </div>
 
-        {/* Global USA Knowledge Base Search Input */}
-        <div className="hidden xl:flex items-center gap-2 pl-2 border-l border-stone-200 shrink-0">
-          <div className="relative">
+        {/* Ask AI & Global USA Knowledge Base Search */}
+        <div className="flex items-center gap-2 pl-2 border-l border-stone-200 shrink-0">
+          <button
+            onClick={() => openAiDrawer()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-stone-900 to-amber-950 text-white text-xs font-mono font-bold hover:shadow-xs transition-all cursor-pointer shadow-2xs"
+            title="Ask Admissions AI Assistant"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>Ask AI</span>
+          </button>
+
+          <div className="hidden xl:flex relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
               value={globalSearchQuery}
               onChange={(e) => setGlobalSearchQuery(e.target.value)}
               placeholder="Search USA Application..."
-              className="pl-8 pr-3 py-1.5 bg-[#FAF8F5] border border-stone-300 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-600 w-48 font-sans"
+              className="pl-8 pr-3 py-1.5 bg-[#FAF8F5] border border-stone-300 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-600 w-44 font-sans"
             />
             {globalSearchQuery && (
               <button
@@ -252,12 +265,16 @@ export const UsaAppWorkspace: React.FC = () => {
         {activeSubSection === 'projects' && <PassionProjectsView />}
         {activeSubSection === 'strategy' && <StrategyView />}
         {activeSubSection === 'vault' && <ResearchVaultView />}
+        {activeSubSection === 'admissions-ai' && <AdmissionsAiView />}
       </main>
 
       {/* Global Settings Modal */}
       {isSettingsOpen && (
         <UsaSettingsModal onClose={() => setIsSettingsOpen(false)} />
       )}
+
+      {/* Admissions AI Drawer */}
+      <AdmissionsAiDrawer />
 
     </div>
   );

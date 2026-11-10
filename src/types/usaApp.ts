@@ -10,7 +10,8 @@ export type UsaSubSection =
   | 'ecas'
   | 'projects'
   | 'strategy'
-  | 'vault';
+  | 'vault'
+  | 'admissions-ai';
 
 export type CollegeCategory = 'reach' | 'target' | 'safety';
 
@@ -589,4 +590,57 @@ export interface UsaAppSettings {
   widgetOrder: string[];
   visibleWidgets: Record<string, boolean>;
   customTags: string[];
+}
+
+// 13. Admissions Intelligence Types (Fall 2028 Cycle)
+export type AdmissionsInstructorMode = 
+  | 'teach-me'          // Teach foundational principles & explain how holistic admissions work
+  | 'research-for-me'   // Live grounding research on university policies, financial aid, requirements
+  | 'review-my-work'    // Critical review of essays, ECAs, LOR plans, profile strengths/gaps
+  | 'plan-with-me'      // Strategic timelines, university list balance, application rounds (ED/EA/RD)
+  | 'explain-detail';   // Deep-dive analysis with context on Bangladesh SSC/HSC, ISFAA, F-1 visa
+
+export interface AdmissionsCitation {
+  id: string;
+  title: string;
+  uri: string;
+  snippet?: string;
+  sourceType?: 'Official Admissions' | 'Common Data Set' | 'Financial Aid Office' | 'Google Search' | 'Other';
+  verificationStatus?: 'verified' | 'provisional' | 'historical';
+}
+
+export interface AdmissionsMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  mode?: AdmissionsInstructorMode;
+  citations?: AdmissionsCitation[];
+  searchQueries?: string[];
+  isSearching?: boolean;
+  error?: string;
+}
+
+export interface AdmissionsContextPackage {
+  selectedUniversityId?: string;
+  selectedUniversityName?: string;
+  activeEssayId?: string;
+  activeEssayTitle?: string;
+  activeEssayPrompt?: string;
+  activeEssaySnippet?: string;
+  activeEcaId?: string;
+  activeEcaName?: string;
+  studentProfileSummary?: string;
+  currentSection?: UsaSubSection;
+  customNotes?: string;
+}
+
+export interface AdmissionsConversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  mode: AdmissionsInstructorMode;
+  messages: AdmissionsMessage[];
+  contextSnapshot?: AdmissionsContextPackage;
 }

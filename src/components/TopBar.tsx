@@ -4,9 +4,11 @@ import {
   Search,
   Menu,
   ChevronsRight,
-  Plus
+  Plus,
+  Sparkles
 } from 'lucide-react';
 import { useTracker } from '../context/TrackerContext';
+import { useUsaApp } from '../context/UsaAppContext';
 
 interface TopBarProps {
   onToggleMobileMenu: () => void;
@@ -24,6 +26,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
     toggleRightSidebar,
     events
   } = useTracker();
+
+  const { openAiDrawer } = useUsaApp();
 
   const formattedToday = React.useMemo(() => {
     try {
@@ -147,6 +151,17 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
             </div>
           )}
         </div>
+
+        {/* Admissions AI Assistant Button */}
+        <button
+          onClick={() => openAiDrawer()}
+          className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-stone-900 to-amber-950 hover:from-black hover:to-stone-900 text-white text-xs font-bold font-mono tracking-wider transition-all cursor-pointer shadow-xs shrink-0"
+          title="Open Admissions AI Instructor (Fall 2028)"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+          <span className="hidden sm:inline">Ask AI</span>
+          <span className="text-[10px] bg-amber-400/20 text-amber-200 px-1 py-0.2 rounded font-mono">2028</span>
+        </button>
 
         {/* + Quick-add button matching reference */}
         <button

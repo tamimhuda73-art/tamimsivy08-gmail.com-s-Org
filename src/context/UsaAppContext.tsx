@@ -26,7 +26,13 @@ import {
   ProjectDevLogEntry,
   UniversityStrategyDecision,
   ResearchVaultItem,
-  UsaAppSettings
+  UsaAppSettings,
+  AdmissionsInstructorMode,
+  AdmissionsCitation,
+  AdmissionsMessage,
+  AdmissionsConversation,
+  AdmissionsContextPackage,
+  VaultCategory
 } from '../types/usaApp';
 import { 
   INITIAL_USA_SETTINGS,
@@ -167,6 +173,27 @@ interface UsaAppContextType {
   updateResearchVaultItem: (id: string, updates: Partial<ResearchVaultItem>) => void;
   deleteResearchVaultItem: (id: string) => void;
 
+  // 10. Admissions Intelligence
+  isAiDrawerOpen: boolean;
+  setIsAiDrawerOpen: (open: boolean) => void;
+  openAiDrawer: (initialQuery?: string, contextOverride?: Partial<AdmissionsContextPackage>) => void;
+  closeAiDrawer: () => void;
+  aiInstructorMode: AdmissionsInstructorMode;
+  setAiInstructorMode: (mode: AdmissionsInstructorMode) => void;
+  aiContextPackage: AdmissionsContextPackage | null;
+  setAiContextPackage: (pkg: AdmissionsContextPackage | null) => void;
+  clearAiContextPackage: () => void;
+  conversations: AdmissionsConversation[];
+  activeConversationId: string | null;
+  setActiveConversationId: (id: string | null) => void;
+  createConversation: (title?: string, mode?: AdmissionsInstructorMode) => string;
+  deleteConversation: (id: string) => void;
+  sendAiMessage: (text: string, overrideMode?: AdmissionsInstructorMode) => Promise<void>;
+  isAiLoading: boolean;
+  aiError: string | null;
+  clearAiError: () => void;
+  saveAiInsightToVault: (title: string, content: string, category?: VaultCategory, sourceUrl?: string) => void;
+
   // Search & Global state
   globalSearchQuery: string;
   setGlobalSearchQuery: (q: string) => void;
@@ -179,6 +206,43 @@ interface UsaAppContextType {
 }
 
 const STORAGE_KEY_USA = 'comeback_usa_application_v2_clean';
+
+const INITIAL_AI_CONVERSATION: AdmissionsConversation = {
+  id: 'conv-init-fall2028',
+  title: 'Admissions Intelligence Onboarding (Fall 2028)',
+  createdAt: '2026-11-10T00:00:00.000Z',
+  updatedAt: '2026-11-10T00:00:00.000Z',
+  mode: 'teach-me',
+  messages: [
+    {
+      id: 'msg-welcome-01',
+      role: 'assistant',
+      content: `### Welcome to Admissions Intelligence (Fall 2028 Cycle)
+I am your personal admissions instructor, international advisor, and research partner embedded directly inside **COMEBACK STUDY TRACKER**.
+
+Here is what I am calibrated to do for your Fall 2028 journey from Bangladesh:
+- **Evidence Over Confidence:** I cross-reference university official requirements, Common Data Set reports, and verified financial aid policies using live web grounding.
+- **Cycle Distinction:** I distinguish confirmed **Fall 2028** policies from historical Fall 2026/2027 rules, explicitly flagging any unreleased criteria.
+- **Bangladesh Context:** Your SSC and HSC Science marks, Dhaka board grading, and Golden A+ are evaluated accurately within national context — no arbitrary 4.0 conversions.
+- **Holistic Review:** We'll craft an authentic Common App 650-word essay, refine supplemental drafts, optimize 10 ECAs, and structure compelling LOR requests.
+- **Save Direct to Vault:** Any verified requirement or strategic insight can be saved to your **Research Vault** with a single click.
+
+Select any of the **5 Instructor Modes** above or ask any question to begin!`,
+      timestamp: '2026-11-10T00:00:00.000Z',
+      mode: 'teach-me',
+      citations: [
+        {
+          id: 'cite-01',
+          title: 'U.S. Department of State - EducationUSA Bangladesh',
+          uri: 'https://bd.usembassy.gov/education-culture/educationusa/',
+          snippet: 'Official guidance for Bangladeshi students applying to US higher education institutions.',
+          sourceType: 'Official Admissions',
+          verificationStatus: 'verified'
+        }
+      ]
+    }
+  ]
+};
 
 const UsaAppContext = createContext<UsaAppContextType | undefined>(undefined);
 
@@ -209,6 +273,15 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [strategyDecisions, setStrategyDecisions] = useState<UniversityStrategyDecision[]>([]);
   const [researchVaultItems, setResearchVaultItems] = useState<ResearchVaultItem[]>(INITIAL_RESEARCH_VAULT_ITEMS);
 
+  // Admissions Intelligence state
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
+  const [aiInstructorMode, setAiInstructorMode] = useState<AdmissionsInstructorMode>('teach-me');
+  const [aiContextPackage, setAiContextPackage] = useState<AdmissionsContextPackage | null>(null);
+  const [conversations, setConversations] = useState<AdmissionsConversation[]>([INITIAL_AI_CONVERSATION]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>('conv-init-fall2028');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [isAutosaved, setIsAutosaved] = useState(true);
   const [lastSavedText, setLastSavedText] = useState('Just now');
@@ -238,6 +311,12 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (parsed.activePassionProjects) setActivePassionProjects(parsed.activePassionProjects);
         if (parsed.strategyDecisions) setStrategyDecisions(parsed.strategyDecisions);
         if (parsed.researchVaultItems) setResearchVaultItems(parsed.researchVaultItems);
+        if (parsed.conversations && Array.isArray(parsed.conversations) && parsed.conversations.length > 0) {
+          setConversations(parsed.conversations);
+        }
+        if (parsed.activeConversationId) {
+          setActiveConversationId(parsed.activeConversationId);
+        }
       }
     } catch (e) {
       console.warn('Failed to load USA Application data:', e);
@@ -264,7 +343,9 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       passionProjectIdeas,
       activePassionProjects,
       strategyDecisions,
-      researchVaultItems
+      researchVaultItems,
+      conversations,
+      activeConversationId
     };
     localStorage.setItem(STORAGE_KEY_USA, JSON.stringify(data));
     setIsAutosaved(false);
@@ -294,7 +375,9 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     passionProjectIdeas,
     activePassionProjects,
     strategyDecisions,
-    researchVaultItems
+    researchVaultItems,
+    conversations,
+    activeConversationId
   ]);
 
   const updateSettings = useCallback((updates: Partial<UsaAppSettings>) => {
@@ -1200,6 +1283,267 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
+  // 10. ADMISSIONS INTELLIGENCE ACTIONS
+  const openAiDrawer = useCallback((initialQuery?: string, contextOverride?: Partial<AdmissionsContextPackage>) => {
+    if (contextOverride) {
+      setAiContextPackage(prev => ({ ...(prev || {}), ...contextOverride }));
+    }
+    setIsAiDrawerOpen(true);
+    if (initialQuery) {
+      setTimeout(() => {
+        sendAiMessage(initialQuery);
+      }, 80);
+    }
+  }, []);
+
+  const closeAiDrawer = useCallback(() => {
+    setIsAiDrawerOpen(false);
+  }, []);
+
+  const clearAiContextPackage = useCallback(() => {
+    setAiContextPackage(null);
+  }, []);
+
+  const clearAiError = useCallback(() => {
+    setAiError(null);
+  }, []);
+
+  const createConversation = useCallback((title?: string, mode?: AdmissionsInstructorMode): string => {
+    const newId = `conv-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    const newConv: AdmissionsConversation = {
+      id: newId,
+      title: title?.trim() || `Admissions Session (${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      mode: mode || aiInstructorMode,
+      messages: []
+    };
+    setConversations(prev => [newConv, ...prev]);
+    setActiveConversationId(newId);
+    return newId;
+  }, [aiInstructorMode]);
+
+  const deleteConversation = useCallback((id: string) => {
+    setConversations(prev => {
+      const filtered = prev.filter(c => c.id !== id);
+      if (filtered.length === 0) {
+        return [INITIAL_AI_CONVERSATION];
+      }
+      return filtered;
+    });
+    if (activeConversationId === id) {
+      setActiveConversationId(prev => {
+        const remaining = conversations.filter(c => c.id !== id);
+        return remaining.length > 0 ? remaining[0].id : INITIAL_AI_CONVERSATION.id;
+      });
+    }
+  }, [activeConversationId, conversations]);
+
+  const saveAiInsightToVault = useCallback((title: string, content: string, category?: VaultCategory, sourceUrl?: string) => {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const newItem: ResearchVaultItem = {
+      id: `vault-ai-${Date.now()}`,
+      title: title.trim() || 'Verified Admissions Intelligence Fact',
+      description: content.trim(),
+      category: category || 'University Research',
+      sourceUrl: sourceUrl || '',
+      dateAdded: timestamp,
+      lastVerifiedDate: timestamp,
+      tags: ['AI Verified', 'Admissions Intelligence', 'Fall 2028'],
+      personalNotes: 'Captured from Admissions Intelligence Instructor chat session.'
+    };
+    setResearchVaultItems(prev => [newItem, ...prev]);
+  }, []);
+
+  const sendAiMessage = useCallback(async (text: string, overrideMode?: AdmissionsInstructorMode) => {
+    if (!text.trim() || isAiLoading) return;
+    setAiError(null);
+
+    const mode = overrideMode || aiInstructorMode;
+    const modeLabelMap: Record<AdmissionsInstructorMode, string> = {
+      'teach-me': 'TEACH ME',
+      'research-for-me': 'RESEARCH FOR ME',
+      'review-my-work': 'REVIEW MY WORK',
+      'plan-with-me': 'PLAN WITH ME',
+      'explain-detail': 'EXPLAIN EVERY DETAIL'
+    };
+
+    let targetConvId = activeConversationId;
+    if (!targetConvId || !conversations.some(c => c.id === targetConvId)) {
+      targetConvId = createConversation(text.slice(0, 32) + (text.length > 32 ? '...' : ''), mode);
+    }
+
+    const userMessageId = `msg-user-${Date.now()}`;
+    const userMessage: AdmissionsMessage = {
+      id: userMessageId,
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString(),
+      mode
+    };
+
+    setConversations(prev => prev.map(c => {
+      if (c.id !== targetConvId) return c;
+      return {
+        ...c,
+        messages: [...c.messages, userMessage],
+        updatedAt: new Date().toISOString()
+      };
+    }));
+
+    setIsAiLoading(true);
+
+    try {
+      const currentConv = conversations.find(c => c.id === targetConvId);
+      const history = (currentConv?.messages || []).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const selectedUniv = selectedUniversityId ? universities.find(u => u.id === selectedUniversityId) : null;
+      const activeEssay = activeMainEssayId ? mainEssays.find(e => e.id === activeMainEssayId) : null;
+
+      const payloadContext = {
+        selectedUniversity: selectedUniv ? {
+          name: selectedUniv.name,
+          category: selectedUniv.category,
+          intendedMajor: selectedUniv.intendedMajor,
+          satPolicy: selectedUniv.satPolicy,
+          ieltsMinScore: selectedUniv.ieltsMinScore,
+          financialAidPolicy: selectedUniv.needBasedAidInternational,
+          applicationRound: selectedUniv.intendedRound,
+          deadlines: {
+            ed: selectedUniv.edDeadline,
+            ea: selectedUniv.eaDeadline,
+            rd: selectedUniv.rdDeadline
+          }
+        } : undefined,
+        selectedEssay: activeEssay ? {
+          title: activeEssay.title,
+          prompt: activeEssay.promptChoice,
+          stage: activeEssay.currentDraftStage,
+          wordCount: activeEssay.wordCount,
+          contentSnippet: activeEssay.currentContent.replace(/<[^>]*>/g, ' ').slice(0, 800)
+        } : undefined,
+        academicsProfile: {
+          ssc: {
+            school: sscArchive.schoolName,
+            board: sscArchive.board,
+            gpa: sscArchive.gpa,
+            goldenAplus: sscArchive.goldenAplus,
+            passingYear: sscArchive.passingYear
+          },
+          hsc: {
+            college: hscArchive.hscCollegeName,
+            board: hscArchive.hscBoard,
+            targetGpa: hscArchive.hscTargetGpa,
+            passingYear: hscArchive.hscPassingYear
+          },
+          sat: {
+            targetScore: satArchive.targetTotalScore,
+            targetRw: satArchive.targetRwScore,
+            targetMath: satArchive.targetMathScore
+          }
+        },
+        ecasProfile: ecaActivities.slice(0, 5).map(a => ({
+          name: a.activityName,
+          role: a.positionOrRole,
+          category: a.category,
+          hoursPerWeek: a.hoursPerWeek,
+          impact: a.measurableOutcomes || a.achievements
+        })),
+        currentModule: activeSubSection,
+        ...aiContextPackage
+      };
+
+      const res = await fetch('/api/admissions-ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          conversationHistory: history,
+          instructorMode: modeLabelMap[mode] || 'TEACH ME',
+          contextData: payloadContext
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with status ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      const assistantMessage: AdmissionsMessage = {
+        id: `msg-ai-${Date.now()}`,
+        role: 'assistant',
+        content: data.text || 'No response produced.',
+        timestamp: data.timestamp || new Date().toISOString(),
+        mode,
+        citations: (data.citations || []).map((c: any, idx: number) => ({
+          id: `cite-${Date.now()}-${idx}`,
+          title: c.title || 'Official Source',
+          uri: c.url,
+          snippet: c.snippet || '',
+          sourceType: 'Official Admissions',
+          verificationStatus: 'verified'
+        })),
+        searchQueries: data.searchQueries || []
+      };
+
+      setConversations(prev => prev.map(c => {
+        if (c.id !== targetConvId) return c;
+        return {
+          ...c,
+          messages: [...c.messages, assistantMessage],
+          updatedAt: new Date().toISOString()
+        };
+      }));
+
+    } catch (err: any) {
+      console.error('Failed to get admissions response:', err);
+      const errMsg = err?.message || 'Failed to communicate with Admissions Intelligence.';
+      setAiError(errMsg);
+
+      const errorMsgObj: AdmissionsMessage = {
+        id: `msg-err-${Date.now()}`,
+        role: 'assistant',
+        content: `**Notice:** ${errMsg}\n\nPlease verify that your server is running and your GEMINI_API_KEY is configured.`,
+        timestamp: new Date().toISOString(),
+        error: errMsg,
+        mode
+      };
+
+      setConversations(prev => prev.map(c => {
+        if (c.id !== targetConvId) return c;
+        return {
+          ...c,
+          messages: [...c.messages, errorMsgObj],
+          updatedAt: new Date().toISOString()
+        };
+      }));
+    } finally {
+      setIsAiLoading(false);
+    }
+  }, [
+    isAiLoading,
+    aiInstructorMode,
+    activeConversationId,
+    conversations,
+    createConversation,
+    selectedUniversityId,
+    universities,
+    activeMainEssayId,
+    mainEssays,
+    sscArchive,
+    hscArchive,
+    satArchive,
+    ecaActivities,
+    activeSubSection,
+    aiContextPackage
+  ]);
+
   const value = useMemo(() => ({
     resetAllToBlank,
     activeSubSection,
@@ -1210,6 +1554,25 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setSelectedCollegeTab,
     settings,
     updateSettings,
+    isAiDrawerOpen,
+    setIsAiDrawerOpen,
+    openAiDrawer,
+    closeAiDrawer,
+    aiInstructorMode,
+    setAiInstructorMode,
+    aiContextPackage,
+    setAiContextPackage,
+    clearAiContextPackage,
+    conversations,
+    activeConversationId,
+    setActiveConversationId,
+    createConversation,
+    deleteConversation,
+    sendAiMessage,
+    isAiLoading,
+    aiError,
+    clearAiError,
+    saveAiInsightToVault,
     universities,
     addUniversity,
     updateUniversity,
@@ -1394,12 +1757,26 @@ export const UsaAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     researchVaultItems,
     addResearchVaultItem,
     updateResearchVaultItem,
-    deleteResearchVaultItem,
     globalSearchQuery,
     isAutosaved,
     lastSavedText,
     exportUsaDataJSON,
-    importUsaDataJSON
+    importUsaDataJSON,
+    isAiDrawerOpen,
+    openAiDrawer,
+    closeAiDrawer,
+    aiInstructorMode,
+    aiContextPackage,
+    clearAiContextPackage,
+    conversations,
+    activeConversationId,
+    createConversation,
+    deleteConversation,
+    sendAiMessage,
+    isAiLoading,
+    aiError,
+    clearAiError,
+    saveAiInsightToVault
   ]);
 
   return (
